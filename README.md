@@ -20,28 +20,22 @@ git clone https://github.com/kaiyao28/GeneticQC.git
 cd GeneticQC
 ```
 
-Recommended setup: use the Docker image. This keeps all bioinformatics packages outside your local machine and makes runs more reproducible.
+Recommended setup: use the published Docker image. This keeps all bioinformatics packages outside your local machine and makes runs more reproducible.
 
 ```bash
 docker pull ghcr.io/kaiyao28/genetic-qc:1.0
 ```
 
-If the image has not been published yet, build it locally:
-
-```bash
-docker build -t genetic-qc:1.0 -f containers/Dockerfile .
-```
-
-Then run with the Docker profile. For the published image, no extra flag is needed:
+Then run with the Docker profile:
 
 ```bash
 nextflow run wgs_wes_qc/main.nf ... -profile docker
 ```
 
-For a locally built image, add:
+The Docker profile uses this image by default:
 
 ```bash
---docker_image genetic-qc:1.0
+ghcr.io/kaiyao28/genetic-qc:1.0
 ```
 
 Test the Docker image:
@@ -50,7 +44,7 @@ Test the Docker image:
 bash test_env.sh docker
 ```
 
-To test a locally built image instead of the registry image:
+To test a different image name, for example a local build:
 
 ```bash
 GENETIC_QC_DOCKER_IMAGE=genetic-qc:1.0 bash test_env.sh docker
@@ -61,12 +55,12 @@ On Windows PowerShell without WSL or Git Bash, use direct `docker run` checks in
 On Windows PowerShell, `.sh` files do not run natively unless you use WSL or Git Bash. You can test the image directly from PowerShell:
 
 ```powershell
-docker run --rm ghcr.io/kaiyao28/genetic-qc:1.0 plink --version
-docker run --rm ghcr.io/kaiyao28/genetic-qc:1.0 bcftools --version
-docker run --rm ghcr.io/kaiyao28/genetic-qc:1.0 gatk --version
+docker run --rm genetic-qc:1.0 plink --version
+docker run --rm genetic-qc:1.0 bcftools --version
+docker run --rm genetic-qc:1.0 gatk --version
 ```
 
-If `docker pull` fails with a message about `dockerDesktopLinuxEngine`, Docker Desktop is not running or the Linux engine is not available. Open Docker Desktop, wait until it says the engine is running, then check:
+If Docker reports a message about `dockerDesktopLinuxEngine`, Docker Desktop is not running or the Linux engine is not available. Open Docker Desktop, wait until it says the engine is running, then check:
 
 ```powershell
 docker version
@@ -74,13 +68,6 @@ docker info
 ```
 
 If Docker Desktop is not installed, install it first and enable the WSL2/Linux backend.
-
-For a local image in PowerShell:
-
-```powershell
-docker build -t genetic-qc:1.0 -f containers/Dockerfile .
-docker run --rm genetic-qc:1.0 plink --version
-```
 
 Each tool check is reported as `PASS`, `WARN`, or `FAIL` when using `test_env.sh`. The full log is written to `test_results.log`.
 
@@ -101,9 +88,22 @@ Example output:
 Results: 13 PASS  1 WARN  0 FAIL
 ```
 
-If a required tool reports `FAIL`, rebuild or pull the Docker image again.
+If a required tool reports `FAIL`, pull the Docker image again or rebuild it locally.
 
-Maintainers: the Docker image is published by `.github/workflows/docker-publish.yml`. Push to `main` or run the workflow manually in GitHub Actions. If `docker pull ghcr.io/kaiyao28/genetic-qc:1.0` returns `denied`, open the package settings on GitHub and set the container package visibility to public.
+Maintainers: the registry image is published by `.github/workflows/docker-publish.yml`.
+
+```bash
+git add .github/workflows/docker-publish.yml nextflow.config conf/docker.config test_env.sh README.md
+git commit -m "Publish Docker image to GHCR"
+git push
+```
+
+After pushing, open GitHub Actions, run or check `Publish Docker Image`, then make the GHCR package public if needed. Once public, a fresh clone should work with:
+
+```bash
+docker pull ghcr.io/kaiyao28/genetic-qc:1.0
+bash test_env.sh docker
+```
 
 For HPC use, convert the Docker image to Singularity/Apptainer format and update `conf/singularity.config`:
 

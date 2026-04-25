@@ -1,0 +1,19 @@
+# Local Nextflow runtime files
+.nextflow*
+work/
+results/
+test_results.log
+
+# Local environment and editor files
+.env
+.venv/
+__pycache__/
+.DS_Store
+Thumbs.db
+
+# Large local container/build artifacts
+containers/*.sif
+*.sif
+
+# GitHub Actions workflows are intentionally tracked because they publish the
+# Docker image to GitHub Container Registry.
