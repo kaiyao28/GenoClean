@@ -100,6 +100,7 @@ nextflow run wgs_wes_qc/main.nf \
   --outdir results/test_vcf_variant_only \
   --docker_image "${IMAGE}" \
   -profile docker \
+  -ansi-log false \
   -resume
 echo
 
@@ -112,6 +113,7 @@ nextflow run snp_array_qc/main.nf \
   --outdir results/test_snp_variant_only \
   --docker_image "${IMAGE}" \
   -profile docker \
+  -ansi-log false \
   -resume
 echo
 
