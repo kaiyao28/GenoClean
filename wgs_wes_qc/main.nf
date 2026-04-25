@@ -165,6 +165,7 @@ workflow {
 
         SELECT_CHROMOSOME(ch_vcf_by_chrom)
         ch_variant_working = SELECT_CHROMOSOME.out.vcf
+            .map { m, chr, vcf -> [m + [id: "${m.id}.chr${chr}", chrom: chr], vcf] }
 
         if (params.run_variant_calling_qc) {
             VARIANT_CALLING_QC(ch_variant_working, ch_fasta)
@@ -274,7 +275,7 @@ process SELECT_CHROMOSOME {
     tuple val(meta), path(vcf), val(chrom)
 
     output:
-    tuple val(meta + [id: "${meta.id}.chr${chrom}", chrom: chrom]), path("${meta.id}.chr${chrom}.vcf.gz"), emit: vcf
+    tuple val(meta), val(chrom), path("${meta.id}.chr${chrom}.vcf.gz"), emit: vcf
 
     script:
     """
