@@ -26,7 +26,7 @@
 */
 
 process ALIGNMENT_METRICS {
-    label 'process_medium'
+    label 'process_low'
     publishDir "${params.outdir}/alignment_metrics/${meta.id}", mode: params.publish_dir_mode
 
     input:

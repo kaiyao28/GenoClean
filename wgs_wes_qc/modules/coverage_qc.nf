@@ -31,7 +31,7 @@
 */
 
 process COVERAGE_QC {
-    label 'process_medium'
+    label 'process_low'
     publishDir "${params.outdir}/coverage_qc/${meta.id}", mode: params.publish_dir_mode
 
     input:

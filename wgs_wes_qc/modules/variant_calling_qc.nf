@@ -22,7 +22,7 @@
 */
 
 process VARIANT_CALLING_QC {
-    label 'process_medium'
+    label 'process_low'
     publishDir "${params.outdir}/variant_calling_qc", mode: params.publish_dir_mode
 
     input:

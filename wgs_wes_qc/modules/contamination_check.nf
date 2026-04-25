@@ -28,7 +28,7 @@
 */
 
 process CONTAMINATION_CHECK {
-    label 'process_medium'
+    label 'process_low'
     publishDir "${params.outdir}/contamination/${meta.id}", mode: params.publish_dir_mode
 
     input:

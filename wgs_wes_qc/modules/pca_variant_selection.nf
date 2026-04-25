@@ -46,7 +46,7 @@
 */
 
 process PCA_VARIANT_SELECTION {
-    label 'process_medium'
+    label 'process_low'
     publishDir "${params.outdir}/ancestry_pca", mode: params.publish_dir_mode, pattern: "pca_variant_selection_summary.txt"
 
     input:

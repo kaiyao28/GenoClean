@@ -27,7 +27,7 @@
 */
 
 process SAMPLE_VARIANT_COUNTS {
-    label 'process_medium'
+    label 'process_low'
     publishDir "${params.outdir}/qc_tables",  mode: params.publish_dir_mode, pattern: "*.tsv"
     publishDir "${params.outdir}/qc_tables",  mode: params.publish_dir_mode, pattern: "*.txt"
     publishDir "${params.outdir}/qc_plots",   mode: params.publish_dir_mode, pattern: "*.png"
