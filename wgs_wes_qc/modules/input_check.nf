@@ -55,7 +55,7 @@ process INPUT_CHECK {
             notes="\${notes}ERROR: target intervals required for WES mode; "
             status="FAIL"
         fi
-    elif [ "${target_intervals}" != "[]" ] && [ ! -s "${target_intervals}" ]; then
+    elif [ -n "${target_intervals}" ] && [ "${target_intervals}" != "[]" ] && [ ! -s "${target_intervals}" ]; then
         notes="\${notes}ERROR: target intervals ${target_intervals} not found; "
         status="FAIL"
     fi
