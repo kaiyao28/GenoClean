@@ -22,6 +22,18 @@ Both workflows follow the same high-level structure:
 04_final_report
 ```
 
+`04_final_report` is an aggregation step, not another QC filter. It can run after a full QC workflow, after variant-level QC only, or after sample-level QC only. The report records which phases ran, which phases were skipped, which chromosomes were analysed, and whether sample-level conclusions are final or provisional.
+
+Recommended phase combinations:
+
+| Use case | Parameters | Expected report status |
+|----------|------------|------------------------|
+| Full production QC | `--run_variant_qc true --run_sample_qc true --chroms 1-22 --sample_qc_scope auto` | Variant QC complete; sample QC final; suitable for final filtering. |
+| Variant-only QC | `--run_variant_qc true --run_sample_qc false --run_final_report true` | Variant QC complete; sample QC skipped; report still generated. |
+| Chromosome test run | `--chroms 22 --sample_qc_scope provisional --run_final_report true` | Variant QC for chr22; sample QC marked provisional if run. |
+| Skip all sample QC | `--sample_qc_scope skip --run_final_report true` | Sample-level QC skipped by scope; report still generated. |
+| Report disabled | `--run_final_report false` | QC runs, but no final HTML report is produced. |
+
 Variant-level QC includes filters and metrics applied to variants, sites, or genotypes. These steps can often run per chromosome:
 
 - duplicate variant checks
@@ -125,14 +137,18 @@ nextflow run snp_array_qc/main.nf \
   --outdir results/snp_array_qc_chr22
 ```
 
-Skip sample-level QC:
+Run variant-level QC only and still generate a report:
 
 ```bash
 nextflow run snp_array_qc/main.nf \
   --bfile data/raw/genotypes \
+  --run_variant_qc true \
   --run_sample_qc false \
+  --run_final_report true \
   --outdir results/snp_array_variant_only
 ```
+
+In this mode, the final report contains the input and variant-level QC summaries, records sample-level QC as skipped, and avoids treating the run as a complete sample QC workflow.
 
 Override thresholds:
 
@@ -172,6 +188,23 @@ nextflow run wgs_wes_qc/main.nf \
   --outdir results/vcf_qc \
   -profile docker
 ```
+
+Run VCF variant-level QC only and still generate a report:
+
+```bash
+nextflow run wgs_wes_qc/main.nf \
+  --input_type vcf \
+  --samplesheet samplesheet.csv \
+  --reference_fasta /data/reference/GRCh38.fa \
+  --mode wgs \
+  --chroms 1-22 \
+  --run_variant_qc true \
+  --run_sample_qc false \
+  --run_final_report true \
+  --outdir results/vcf_variant_only
+```
+
+This is useful when you only need site/genotype filtering, Ti/Tv summaries, per-chromosome processing, and merged filtered VCF output. The report still runs and clearly states that sample-level modules were skipped.
 
 Run a chromosome-only test:
 
