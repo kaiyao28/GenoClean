@@ -11,6 +11,54 @@ The pipeline separates variant-level QC from sample-level QC. This is important 
 
 All thresholds are defined in config files and can be overridden at runtime. Individual modules and whole QC phases can be enabled or disabled with parameters.
 
+## Quick Start
+
+Clone the repository and enter the project folder:
+
+```bash
+git clone https://github.com/kaiyao28/GeneticQC.git
+cd GeneticQC
+```
+
+Install one execution environment:
+
+```bash
+bash setup.sh
+bash setup.sh docker
+bash setup.sh singularity
+```
+
+Then test the tools:
+
+```bash
+bash test_env.sh
+bash test_env.sh docker
+bash test_env.sh singularity
+```
+
+Each tool is reported as `PASS`, `WARN`, or `FAIL`. The full log is written to `test_results.log`.
+
+Example output:
+
+```text
+[PASS]  PLINK 1.9              PLINK v1.90b6.21
+[PASS]  PLINK2                 PLINK v2.00a5.12
+[PASS]  samtools               samtools 1.18
+[PASS]  bcftools               bcftools 1.18
+[PASS]  picard                 3.1.1
+[PASS]  FastQC                 FastQC v0.12.1
+[PASS]  mosdepth               mosdepth 0.3.6
+[PASS]  GATK                   4.5.0.0
+[WARN]  VerifyBamID2           not found
+[PASS]  Python 3               Python 3.10.12
+[PASS]  R                      R version 4.3.1
+Results: 13 PASS  1 WARN  0 FAIL
+```
+
+If any required tool reports `FAIL`, re-run `setup.sh`, inspect the error, or check [containers/environment.yml](containers/environment.yml).
+
+For HPC use, after `bash setup.sh singularity`, copy `containers/genetic-qc.sif` to shared cluster storage and update `conf/singularity.config`.
+
 ## Workflow Design
 
 Both workflows follow the same high-level structure:
@@ -64,47 +112,6 @@ The `sample_qc_scope` parameter controls this behavior:
 | `genome_wide` | Treat sample-level QC as final. |
 | `provisional` | Run sample-level QC but mark it as not suitable for final filtering. |
 | `skip` | Skip sample-level QC. |
-
-## Setup
-
-Install one execution environment:
-
-```bash
-bash setup.sh
-bash setup.sh docker
-bash setup.sh singularity
-```
-
-Then test the tools:
-
-```bash
-bash test_env.sh
-bash test_env.sh docker
-bash test_env.sh singularity
-```
-
-Each tool is reported as `PASS`, `WARN`, or `FAIL`. The full log is written to `test_results.log`.
-
-Example output:
-
-```text
-[PASS]  PLINK 1.9              PLINK v1.90b6.21
-[PASS]  PLINK2                 PLINK v2.00a5.12
-[PASS]  samtools               samtools 1.18
-[PASS]  bcftools               bcftools 1.18
-[PASS]  picard                 3.1.1
-[PASS]  FastQC                 FastQC v0.12.1
-[PASS]  mosdepth               mosdepth 0.3.6
-[PASS]  GATK                   4.5.0.0
-[WARN]  VerifyBamID2           not found
-[PASS]  Python 3               Python 3.10.12
-[PASS]  R                      R version 4.3.1
-Results: 13 PASS  1 WARN  0 FAIL
-```
-
-If any required tool reports `FAIL`, re-run `setup.sh`, inspect the error, or check [containers/environment.yml](containers/environment.yml).
-
-For HPC use, after `bash setup.sh singularity`, copy `containers/genetic-qc.sif` to shared cluster storage and update `conf/singularity.config`.
 
 ## SNP Array QC
 
