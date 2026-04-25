@@ -21,7 +21,7 @@ process MERGE_CHROMOSOMES {
 
     script:
     """
-    ls *.bed | sed 's/.bed$//' | sort > merge_prefixes.txt
+    for f in *.bed; do echo "\${f%.bed}"; done | sort > merge_prefixes.txt
     head -n 1 merge_prefixes.txt > base_prefix.txt
     tail -n +2 merge_prefixes.txt > merge_list.txt
     base=\$(cat base_prefix.txt)

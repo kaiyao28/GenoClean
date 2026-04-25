@@ -44,7 +44,7 @@ process INPUT_CHECK {
     n_variants=\$(wc -l < ${bim})
 
     # ── Chromosome distribution from .bim column 1 ───────────────────────────
-    chr_dist=\$(awk '{print \$1}' ${bim} | sort -V | uniq -c | awk '{print \$2"("\$1")"}' | tr '\\n' ',' | sed 's/,\$//')
+    chr_dist=\$(awk '{print \$1}' ${bim} | sort -V | uniq -c | awk '{print \$2"("\$1")"}' | tr '\\n' ',' | sed "s/,\$//")
 
     # ── Phenotype column summary (0=missing, 1=control, 2=case) ──────────────
     n_missing_pheno=\$(awk '\$6==0 || \$6==-9 {count++} END{print count+0}' ${fam})
