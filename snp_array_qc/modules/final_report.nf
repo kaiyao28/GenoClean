@@ -31,7 +31,7 @@ import glob
 import html
 
 summaries = []
-for fname in sorted(glob.glob("*summary*.txt") + glob.glob("*_summary.txt")):
+for fname in sorted(glob.glob("*summary*.txt")):
     data = {"file": fname}
     try:
         with open(fname) as fh:
