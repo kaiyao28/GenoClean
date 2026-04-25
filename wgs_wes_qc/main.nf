@@ -183,7 +183,8 @@ workflow {
             ch_qc_summaries = ch_qc_summaries.mix(INDEX_CHROM_VCF.out.summary)
         }
 
-        MERGE_CHROMOSOMES(ch_variant_for_merge.collect())
+        def merged_meta = [id: "merged", input_type: params.input_type, mode: params.mode]
+        MERGE_CHROMOSOMES(ch_variant_for_merge.collect(), Channel.value(merged_meta))
         ch_merged_vcf = MERGE_CHROMOSOMES.out.vcf
         ch_qc_summaries = ch_qc_summaries.mix(MERGE_CHROMOSOMES.out.summary)
     } else {

@@ -14,9 +14,10 @@ process MERGE_CHROMOSOMES {
 
     input:
     path vcfs
+    val  meta
 
     output:
-    tuple val(["id": "merged", "input_type": params.input_type, "mode": params.mode]),
+    tuple val(meta),
           path("merged.vcf.gz"),
           path("merged.vcf.gz.tbi"), emit: vcf
     path "merge_chromosomes_summary.txt", emit: summary
