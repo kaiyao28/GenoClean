@@ -1,0 +1,5 @@
+sample,file1,file2
+SAMPLE001,/data/bams/SAMPLE001.bam,/data/bams/SAMPLE001.bam.bai
+SAMPLE002,/data/bams/SAMPLE002.bam,/data/bams/SAMPLE002.bam.bai
+SAMPLE003,/data/bams/SAMPLE003.bam,/data/bams/SAMPLE003.bam.bai
+SAMPLE004,/data/bams/SAMPLE004.bam,/data/bams/SAMPLE004.bam.bai

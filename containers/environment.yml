@@ -1,0 +1,63 @@
+# =============================================================================
+#  Genetic QC Pipeline — Conda/Mamba environment
+# =============================================================================
+#  Use this when Docker/Singularity is not available (e.g. local development).
+#
+#  Create:
+#    mamba env create -f containers/environment.yml
+#    mamba activate genetic_qc
+#
+#  Update (after editing this file):
+#    mamba env update -f containers/environment.yml --prune
+#
+#  Export current state:
+#    mamba env export --no-builds > containers/environment_pinned.yml
+#
+#  Note: VerifyBamID2 is listed but may fail on some platforms.
+#  If it fails, remove it and use GATK CalculateContamination instead.
+# =============================================================================
+
+name: genetic_qc
+
+channels:
+  - conda-forge    # general scientific packages
+  - bioconda       # bioinformatics tools
+  - defaults
+
+dependencies:
+  # ── Pipeline orchestration ──────────────────────────────────────────────────
+  - nextflow>=23.04
+  - openjdk>=17    # required by Nextflow, GATK, and Picard
+
+  # ── SNP array QC tools ──────────────────────────────────────────────────────
+  - plink=1.90b6.21        # GWAS QC: missingness, HWE, sex check, PCA, IBD
+  - plink2>=2.00a5         # WGS/WES PCA (faster VCF-native implementation)
+
+  # ── WGS/WES alignment and variant tools ─────────────────────────────────────
+  - samtools>=1.15         # flagstat, depth, idxstats, index
+  - bcftools>=1.15         # stats, filter, view, query, +relatedness2
+  - htslib>=1.15           # tabix indexing (used by bcftools and GATK)
+  - tabix>=1.11            # VCF/BED indexing
+
+  # ── QC-specific tools ────────────────────────────────────────────────────────
+  - picard>=2.27           # MarkDuplicates, CollectAlignmentSummaryMetrics
+  - fastqc>=0.11           # FASTQ quality assessment
+  - mosdepth>=0.3          # coverage calculation (WGS/WES)
+  - gatk4>=4.3             # VariantFiltration, VariantRecalibrator, VQSR
+  - verifybamid2>=2.0      # contamination estimation (SVD method)
+
+  # ── Python ───────────────────────────────────────────────────────────────────
+  - python>=3.8
+  - pandas>=1.5
+  - numpy>=1.22
+  - scipy>=1.9
+  - matplotlib>=3.6
+  - seaborn>=0.12
+
+  # ── R (optional — used for QC plots) ─────────────────────────────────────────
+  - r-base>=4.2
+  - r-ggplot2>=3.4
+  - r-data.table>=1.14
+  - r-dplyr>=1.1
+  - r-readr>=2.1
+  - r-scales>=1.2

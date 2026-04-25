@@ -1,0 +1,81 @@
+# ============================================================
+# Example params file for the SNP Array QC pipeline
+# Run with: nextflow run snp_array_qc/main.nf -params-file assets/example_params.yml
+# ============================================================
+
+# ── Input ────────────────────────────────────────────────────
+bfile:           "data/raw/genotypes"
+pheno:           "data/metadata/phenotypes.tsv"
+reference_panel: "data/reference/1000G_hg38"
+
+# ── Output ───────────────────────────────────────────────────
+outdir:            "results/snp_array_qc"
+keep_intermediate: false
+
+# ── Module switches ──────────────────────────────────────────
+# Set any to false to skip that QC step
+run_duplicate_check:     true
+run_sample_missingness:  true
+run_variant_missingness: true
+run_sex_check:           true
+run_heterozygosity:      true
+run_relatedness:         true
+run_ancestry_pca:        true
+run_hwe:                 true
+run_maf_filter:          true
+run_final_report:        true
+
+# ── SNP array thresholds ─────────────────────────────────────
+# Uncomment and change any value to override the default
+# sample_missingness:       0.02
+# variant_missingness:      0.02
+# hwe_p:                    1.0e-6
+# maf:                      0.01
+# heterozygosity_sd:        3
+# relatedness_pi_hat:       0.1875
+# sex_check_f_lower_female: 0.2
+# sex_check_f_upper_male:   0.8
+# pca_outlier_sd:           6
+# n_pcs:                    20
+
+---
+# ============================================================
+# Example params file for the WGS/WES QC pipeline
+# Run with: nextflow run wgs_wes_qc/main.nf -params-file assets/example_params_wgs.yml
+# ============================================================
+
+# ── Input ────────────────────────────────────────────────────
+input_type:       "bam"          # fastq | bam | cram | vcf
+samplesheet:      "assets/example_samplesheet.csv"
+reference_fasta:  "data/reference/GRCh38.fa"
+target_intervals: "data/reference/exome_targets.bed"  # required for WES
+mode:             "wes"          # wes | wgs
+
+# ── Output ───────────────────────────────────────────────────
+outdir:            "results/wgs_wes_qc"
+keep_intermediate: false
+
+# ── Module switches ──────────────────────────────────────────
+run_fastqc:                false   # skip if starting from BAM
+run_alignment_metrics:     true
+run_duplicate_metrics:     true
+run_coverage_qc:           true
+run_contamination:         true
+run_sex_check_wgs:         true
+run_variant_calling_qc:    true
+run_variant_filtering:     true
+run_genotype_filter:       true
+run_sample_variant_counts: true
+run_relatedness_wgs:       true
+run_ancestry_pca_wgs:      true
+
+# ── WGS/WES thresholds ───────────────────────────────────────
+# min_mean_depth_wes:       30
+# min_target_20x_fraction:  0.80
+# max_contamination:        0.03
+# max_duplication_rate:     0.20
+# min_call_rate:            0.95
+# min_gq:                   20
+# min_dp:                   10
+# variant_qual:             30
+# variant_filter_method:    "hard_filter"   # or "vqsr"
