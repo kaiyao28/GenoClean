@@ -1,13 +1,17 @@
 # Genetic QC Pipeline
 
-A reproducible Nextflow DSL2 pipeline for genetic quality control, with two independent workflows:
+Everything you need for production-grade genetic QC, batteries included. Clone the repo, run one command, get a clean dataset and an HTML report — no manual tool installation, no custom scripts.
+
+The pipeline covers the full QC stack for two data types:
 
 | Workflow | Input | Use case |
 |----------|-------|----------|
 | `snp_array_qc/` | PLINK binary (`.bed/.bim/.fam`) | SNP arrays, GWAS datasets |
 | `wgs_wes_qc/` | FASTQ, BAM/CRAM, or VCF | Whole-genome or whole-exome sequencing |
 
-Each workflow runs variant-level QC, optional sample-level QC, and produces an HTML report.
+Every QC step — variant missingness, HWE, MAF, sex check, heterozygosity, relatedness, ancestry PCA, contamination, coverage, duplicate rate — runs in the right order, with the right tools, all pre-installed in a single Docker image. Each step can be toggled on or off independently, and every threshold has a sensible default that can be overridden from the command line. The pipeline resumes from where it left off if anything fails.
+
+At the end you get a self-contained HTML report with the full attrition table, all metrics, and the exact thresholds used — ready to paste into a methods section.
 
 ---
 
