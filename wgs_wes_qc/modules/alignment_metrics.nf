@@ -62,7 +62,7 @@ process ALIGNMENT_METRICS {
 import re
 
 def grep_flagstat(key, text):
-    for line in text.split("\n"):
+    for line in text.split("\\n"):
         if key in line:
             m = re.search(r"([0-9]+)", line)
             return m.group(1) if m else "NA"
@@ -78,7 +78,7 @@ duplicates    = grep_flagstat("duplicates", flag_text)
 
 # Extract mapping rate percentage
 map_rate = "NA"
-for line in flag_text.split("\n"):
+for line in flag_text.split("\\n"):
     if "mapped (" in line:
         m = re.search(r"[(]([0-9.]+)%[)]", line)
         if m:
@@ -101,14 +101,14 @@ except Exception:
     pass
 
 with open("alignment_summary.txt", "w") as out:
-    out.write(f"step=alignment_metrics\n")
-    out.write(f"dataset=${meta.id}\n")
-    out.write(f"total_reads={total_reads}\n")
-    out.write(f"mapped_reads={mapped_reads}\n")
-    out.write(f"mapping_rate_pct={map_rate}\n")
-    out.write(f"properly_paired={properly_pair}\n")
-    out.write(f"duplicates={duplicates}\n")
-    out.write(f"median_insert_size={median_insert}\n")
+    out.write(f"step=alignment_metrics\\n")
+    out.write(f"dataset=${meta.id}\\n")
+    out.write(f"total_reads={total_reads}\\n")
+    out.write(f"mapped_reads={mapped_reads}\\n")
+    out.write(f"mapping_rate_pct={map_rate}\\n")
+    out.write(f"properly_paired={properly_pair}\\n")
+    out.write(f"duplicates={duplicates}\\n")
+    out.write(f"median_insert_size={median_insert}\\n")
 
 print(f"Alignment metrics: {total_reads} total reads, {map_rate}% mapped, "
       f"median insert size {median_insert} bp")

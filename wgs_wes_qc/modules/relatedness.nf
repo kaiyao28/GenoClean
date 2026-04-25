@@ -98,20 +98,20 @@ while remaining:
     remaining = [(s1, s2, r) for s1, s2, r in remaining if victim not in (s1, s2)]
 
 with open("relatedness_pairs.txt", "w") as out:
-    out.write("sample_a\tsample_b\trelatedness\n")
+    out.write("sample_a\tsample_b\trelatedness\\n")
     for s1, s2, r in pairs:
-        out.write(f"{s1}\t{s2}\t{r:.6f}\n")
+        out.write(f"{s1}\t{s2}\t{r:.6f}\\n")
 
 with open("relatedness_remove.txt", "w") as out:
     for s in to_remove:
-        out.write(f"{s}\n")
+        out.write(f"{s}\\n")
 
 with open("relatedness_wgs_summary.txt", "w") as out:
-    out.write(f"step=relatedness_wgs\n")
-    out.write(f"dataset=${meta.id}\n")
-    out.write(f"pi_hat_threshold={threshold}\n")
-    out.write(f"n_related_pairs={len(pairs)}\n")
-    out.write(f"n_samples_to_remove={len(to_remove)}\n")
+    out.write(f"step=relatedness_wgs\\n")
+    out.write(f"dataset=${meta.id}\\n")
+    out.write(f"pi_hat_threshold={threshold}\\n")
+    out.write(f"n_related_pairs={len(pairs)}\\n")
+    out.write(f"n_samples_to_remove={len(to_remove)}\\n")
 
 print(f"Relatedness WGS: {len(pairs)} related pairs, {len(to_remove)} samples for removal")
 PYEOF

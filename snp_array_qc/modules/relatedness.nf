@@ -120,15 +120,15 @@ while remaining_pairs:
 
 with open("relatedness_remove.txt", "w") as out:
     for fid, iid in to_remove:
-        out.write(f"{fid}\t{iid}\n")
+        out.write(f"{fid}\t{iid}\\n")
 
 with open("relatedness_summary.txt", "w") as out:
-    out.write(f"step=relatedness\n")
-    out.write(f"dataset=${meta.id}\n")
-    out.write(f"pi_hat_threshold=${params.relatedness_pi_hat}\n")
-    out.write(f"n_related_pairs={n_pairs}\n")
-    out.write(f"n_duplicate_pairs={n_duplicates}\n")
-    out.write(f"n_samples_removed={len(to_remove)}\n")
+    out.write(f"step=relatedness\\n")
+    out.write(f"dataset=${meta.id}\\n")
+    out.write(f"pi_hat_threshold=${params.relatedness_pi_hat}\\n")
+    out.write(f"n_related_pairs={n_pairs}\\n")
+    out.write(f"n_duplicate_pairs={n_duplicates}\\n")
+    out.write(f"n_samples_removed={len(to_remove)}\\n")
 
 print(f"Relatedness: {n_pairs} pairs above PI_HAT {${params.relatedness_pi_hat}}, "
       f"{len(to_remove)} samples recommended for removal")

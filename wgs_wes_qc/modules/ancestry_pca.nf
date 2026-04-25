@@ -156,7 +156,7 @@ if not data:
     with open("ancestry_outliers.txt", "w") as out:
         pass
     with open("ancestry_pca_wgs_summary.txt", "w") as out:
-        out.write("step=ancestry_pca_wgs\ndataset=${meta.id}\nn_samples=0\nn_outliers=0\n")
+        out.write("step=ancestry_pca_wgs\ndataset=${meta.id}\nn_samples=0\nn_outliers=0\\n")
     exit()
 
 n_pcs_computed = len(data[0][2])
@@ -174,7 +174,7 @@ for fid, iid, pcs in data:
 
 with open("ancestry_outliers.txt", "w") as out:
     for fid, iid in outliers:
-        out.write(f"{fid}\t{iid}\n")
+        out.write(f"{fid}\t{iid}\\n")
 
 eigenvals = []
 pve = []
@@ -187,17 +187,17 @@ except Exception:
     pass
 
 with open("ancestry_pca_wgs_summary.txt", "w") as out:
-    out.write(f"step=ancestry_pca_wgs\n")
-    out.write(f"dataset=${meta.id}\n")
-    out.write(f"mode=${meta.mode}\n")
-    out.write(f"pca_outlier_sd=${params.pca_outlier_sd}\n")
-    out.write(f"n_pcs_computed={n_pcs_computed}\n")
-    out.write(f"n_samples={len(data)}\n")
-    out.write(f"n_outliers={len(outliers)}\n")
+    out.write(f"step=ancestry_pca_wgs\\n")
+    out.write(f"dataset=${meta.id}\\n")
+    out.write(f"mode=${meta.mode}\\n")
+    out.write(f"pca_outlier_sd=${params.pca_outlier_sd}\\n")
+    out.write(f"n_pcs_computed={n_pcs_computed}\\n")
+    out.write(f"n_samples={len(data)}\\n")
+    out.write(f"n_outliers={len(outliers)}\\n")
     if pve:
-        out.write(f"pc1_variance_pct={pve[0]:.2f}\n")
-        out.write(f"pc2_variance_pct={pve[1]:.2f}\n" if len(pve) > 1 else "")
-    out.write("reference_panel_used=${ref_used}\n")
+        out.write(f"pc1_variance_pct={pve[0]:.2f}\\n")
+        out.write(f"pc2_variance_pct={pve[1]:.2f}\\n" if len(pve) > 1 else "")
+    out.write("reference_panel_used=${ref_used}\\n")
 
 print(f"Ancestry PCA WGS/WES: {len(outliers)} outliers flagged beyond ±{sd_thr} SD "
       f"({len(data)} samples, {n_pcs_computed} PCs)")

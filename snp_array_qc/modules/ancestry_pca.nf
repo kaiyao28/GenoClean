@@ -149,7 +149,7 @@ for fid, iid, pcs in data:
 
 with open("ancestry_outliers.txt", "w") as out:
     for fid, iid in outliers:
-        out.write(f"{fid}\t{iid}\n")
+        out.write(f"{fid}\t{iid}\\n")
 
 # Read eigenvalues for variance explained
 eigenvals = []
@@ -162,15 +162,15 @@ except Exception:
     pve = []
 
 with open("pca_summary.txt", "w") as out:
-    out.write(f"step=ancestry_pca\n")
-    out.write(f"dataset=${meta.id}\n")
-    out.write(f"pca_outlier_sd=${params.pca_outlier_sd}\n")
-    out.write(f"n_pcs={n_pcs_computed}\n")
-    out.write(f"n_samples={len(data)}\n")
-    out.write(f"n_outliers={len(outliers)}\n")
+    out.write(f"step=ancestry_pca\\n")
+    out.write(f"dataset=${meta.id}\\n")
+    out.write(f"pca_outlier_sd=${params.pca_outlier_sd}\\n")
+    out.write(f"n_pcs={n_pcs_computed}\\n")
+    out.write(f"n_samples={len(data)}\\n")
+    out.write(f"n_outliers={len(outliers)}\\n")
     if pve:
-        out.write(f"pc1_variance_pct={pve[0]:.2f}\n")
-        out.write(f"pc2_variance_pct={pve[1]:.2f}\n")
+        out.write(f"pc1_variance_pct={pve[0]:.2f}\\n")
+        out.write(f"pc2_variance_pct={pve[1]:.2f}\\n")
 
 print(f"Ancestry PCA: {len(outliers)} outliers flagged beyond ±{sd_thr} SD")
 PYEOF

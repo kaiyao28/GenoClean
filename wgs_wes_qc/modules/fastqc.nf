@@ -56,7 +56,7 @@ for zf in glob.glob("*.zip"):
             summary_name = [n for n in z.namelist() if n.endswith("summary.txt")]
             if summary_name:
                 lines = z.read(summary_name[0]).decode()
-                for line in lines.strip().split("\n"):
+                for line in lines.strip().split("\\n"):
                     status, test, fname = line.split("\t")
                     key = f"{fname}::{test}"
                     results[key] = status
@@ -68,14 +68,14 @@ n_warn = sum(1 for s in results.values() if s == "WARN")
 n_pass = sum(1 for s in results.values() if s == "PASS")
 
 with open("fastqc_summary.txt", "w") as out:
-    out.write("step=fastqc\n")
-    out.write(f"dataset=${meta.id}\n")
-    out.write(f"n_tests_pass={n_pass}\n")
-    out.write(f"n_tests_warn={n_warn}\n")
-    out.write(f"n_tests_fail={n_fail}\n")
+    out.write("step=fastqc\\n")
+    out.write(f"dataset=${meta.id}\\n")
+    out.write(f"n_tests_pass={n_pass}\\n")
+    out.write(f"n_tests_warn={n_warn}\\n")
+    out.write(f"n_tests_fail={n_fail}\\n")
     for key, status in results.items():
         if status in ("FAIL", "WARN"):
-            out.write(f"flag={status}::{key}\n")
+            out.write(f"flag={status}::{key}\\n")
 
 print(f"FastQC: {n_pass} PASS, {n_warn} WARN, {n_fail} FAIL across all tests")
 PYEOF

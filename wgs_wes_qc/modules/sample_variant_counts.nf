@@ -107,7 +107,7 @@ except Exception as e:
 
 outliers = []
 with open("sample_variant_counts.tsv", "w") as out:
-    out.write("sample\tn_total\tn_missing\tcall_rate\tn_het\tn_hom\tn_indel\tstatus\n")
+    out.write("sample\tn_total\tn_missing\tcall_rate\tn_het\tn_hom\tn_indel\tstatus\\n")
     for sample, d in samples.items():
         cr = d["call_rate"]
         psc = snp_counts.get(sample, {})
@@ -116,21 +116,21 @@ with open("sample_variant_counts.tsv", "w") as out:
             outliers.append(sample)
         out.write(f"{sample}\t{d['total']}\t{d['missing']}\t{cr:.4f}\t"
                   f"{psc.get('n_het','NA')}\t{psc.get('n_hom','NA')}\t"
-                  f"{psc.get('n_indel','NA')}\t{status}\n")
+                  f"{psc.get('n_indel','NA')}\t{status}\\n")
 
 with open("sample_count_outliers.txt", "w") as out:
     for s in outliers:
-        out.write(f"{s}\n")
+        out.write(f"{s}\\n")
 
 with open("sample_variant_counts_summary.txt", "w") as out:
-    out.write(f"step=sample_variant_counts\n")
-    out.write(f"dataset=${meta.id}\n")
-    out.write(f"min_call_rate_threshold={min_cr}\n")
-    out.write(f"n_samples={len(samples)}\n")
-    out.write(f"n_low_callrate={len(outliers)}\n")
+    out.write(f"step=sample_variant_counts\\n")
+    out.write(f"dataset=${meta.id}\\n")
+    out.write(f"min_call_rate_threshold={min_cr}\\n")
+    out.write(f"n_samples={len(samples)}\\n")
+    out.write(f"n_low_callrate={len(outliers)}\\n")
     if samples:
         avg_cr = sum(d["call_rate"] for d in samples.values()) / len(samples)
-        out.write(f"mean_call_rate={avg_cr:.4f}\n")
+        out.write(f"mean_call_rate={avg_cr:.4f}\\n")
 
 print(f"Sample variant counts: {len(outliers)} samples below call rate {min_cr}")
 PYEOF

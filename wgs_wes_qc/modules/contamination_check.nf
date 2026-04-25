@@ -86,11 +86,11 @@ except Exception as e:
 status = "FAIL" if isinstance(freemix, float) and freemix > threshold else "PASS"
 
 with open("contamination_summary.txt", "w") as out:
-    out.write(f"step=contamination_check\n")
-    out.write(f"dataset=${meta.id}\n")
-    out.write(f"max_contamination_threshold={threshold}\n")
-    out.write(f"contamination_estimate={freemix}\n")
-    out.write(f"status={status}\n")
+    out.write(f"step=contamination_check\\n")
+    out.write(f"dataset=${meta.id}\\n")
+    out.write(f"max_contamination_threshold={threshold}\\n")
+    out.write(f"contamination_estimate={freemix}\\n")
+    out.write(f"status={status}\\n")
 
 pct = f"{float(freemix)*100:.2f}%" if freemix != "NA" else "NA"
 print(f"Contamination: {pct} (threshold {threshold*100:.0f}%) — {status}")

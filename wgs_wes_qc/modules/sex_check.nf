@@ -95,17 +95,17 @@ if reported not in ("unknown", "") and reported != inferred_sex:
     status = "DISCORDANT"
 
 with open("sex_check_results.txt", "w") as out:
-    out.write("sample\treported_sex\tinferred_sex\tx_coverage\ty_coverage\tauto_coverage\tx_norm\ty_norm\tstatus\n")
-    out.write(f"${meta.id}\t{reported}\t{inferred_sex}\t{x_depth}\t{y_depth}\t{auto_depth}\t{x_norm}\t{y_norm}\t{status}\n")
+    out.write("sample\treported_sex\tinferred_sex\tx_coverage\ty_coverage\tauto_coverage\tx_norm\ty_norm\tstatus\\n")
+    out.write(f"${meta.id}\t{reported}\t{inferred_sex}\t{x_depth}\t{y_depth}\t{auto_depth}\t{x_norm}\t{y_norm}\t{status}\\n")
 
 with open("sex_check_summary.txt", "w") as out:
-    out.write(f"step=sex_check_wgs\n")
-    out.write(f"dataset=${meta.id}\n")
-    out.write(f"inferred_sex={inferred_sex}\n")
-    out.write(f"reported_sex={reported}\n")
-    out.write(f"x_norm_coverage={x_norm}\n")
-    out.write(f"y_norm_coverage={y_norm}\n")
-    out.write(f"status={status}\n")
+    out.write(f"step=sex_check_wgs\\n")
+    out.write(f"dataset=${meta.id}\\n")
+    out.write(f"inferred_sex={inferred_sex}\\n")
+    out.write(f"reported_sex={reported}\\n")
+    out.write(f"x_norm_coverage={x_norm}\\n")
+    out.write(f"y_norm_coverage={y_norm}\\n")
+    out.write(f"status={status}\\n")
 
 print(f"Sex check: inferred={inferred_sex}, reported={reported} — {status}")
 PYEOF

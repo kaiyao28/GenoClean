@@ -81,7 +81,7 @@ n_multiallelic = m.get("number_of_multiallelic_sites", "NA")
 
 # Parse PSC lines for per-sample het/hom
 with open("sample_variant_stats.tsv", "w") as out:
-    out.write("sample\tn_snps\tn_indels\tts_tv\tn_hom\tn_het\n")
+    out.write("sample\tn_snps\tn_indels\tts_tv\tn_hom\tn_het\\n")
     try:
         with open("psc_lines.txt") as fh:
             for line in fh:
@@ -92,17 +92,17 @@ with open("sample_variant_stats.tsv", "w") as out:
                     n_hom  = parts[4]
                     n_het  = parts[5]
                     ts_tv_s = parts[6]
-                    out.write(f"{sample}\tNA\tNA\t{ts_tv_s}\t{n_hom}\t{n_het}\n")
+                    out.write(f"{sample}\tNA\tNA\t{ts_tv_s}\t{n_hom}\t{n_het}\\n")
     except Exception:
-        out.write(f"${meta.id}\t{n_snps}\t{n_indels}\t{ts_tv}\tNA\tNA\n")
+        out.write(f"${meta.id}\t{n_snps}\t{n_indels}\t{ts_tv}\tNA\tNA\\n")
 
 with open("variant_calling_qc_summary.txt", "w") as out:
-    out.write(f"step=variant_calling_qc\n")
-    out.write(f"dataset=${meta.id}\n")
-    out.write(f"n_snps={n_snps}\n")
-    out.write(f"n_indels={n_indels}\n")
-    out.write(f"ts_tv_ratio={ts_tv}\n")
-    out.write(f"n_multiallelic={n_multiallelic}\n")
+    out.write(f"step=variant_calling_qc\\n")
+    out.write(f"dataset=${meta.id}\\n")
+    out.write(f"n_snps={n_snps}\\n")
+    out.write(f"n_indels={n_indels}\\n")
+    out.write(f"ts_tv_ratio={ts_tv}\\n")
+    out.write(f"n_multiallelic={n_multiallelic}\\n")
 
 print(f"Variant calling QC: {n_snps} SNPs, {n_indels} indels, Ti/Tv={ts_tv}")
 PYEOF

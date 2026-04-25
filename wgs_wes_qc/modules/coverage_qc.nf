@@ -122,25 +122,25 @@ frac_ok   = isinstance(pct_20x, float) and pct_20x >= frac_20x_thr
 status    = "PASS" if (depth_ok and frac_ok) else "FAIL"
 
 with open("coverage_summary.txt", "w") as out:
-    out.write(f"step=coverage_qc\n")
-    out.write(f"dataset=${meta.id}\n")
-    out.write(f"mode={mode}\n")
-    out.write(f"min_mean_depth_threshold={min_depth}\n")
-    out.write(f"min_20x_fraction_threshold={frac_20x_thr}\n")
-    out.write(f"mean_depth={mean_depth}\n")
-    out.write(f"fraction_10x={pct_10x}\n")
-    out.write(f"fraction_20x={pct_20x}\n")
-    out.write(f"fraction_30x={pct_30x}\n")
-    out.write(f"status={status}\n")
+    out.write(f"step=coverage_qc\\n")
+    out.write(f"dataset=${meta.id}\\n")
+    out.write(f"mode={mode}\\n")
+    out.write(f"min_mean_depth_threshold={min_depth}\\n")
+    out.write(f"min_20x_fraction_threshold={frac_20x_thr}\\n")
+    out.write(f"mean_depth={mean_depth}\\n")
+    out.write(f"fraction_10x={pct_10x}\\n")
+    out.write(f"fraction_20x={pct_20x}\\n")
+    out.write(f"fraction_30x={pct_30x}\\n")
+    out.write(f"status={status}\\n")
 
 # Machine-readable metrics table
 with open("coverage_metrics.txt", "w") as out:
-    out.write("metric\tvalue\n")
-    out.write(f"mean_depth\t{mean_depth}\n")
-    out.write(f"fraction_10x\t{pct_10x}\n")
-    out.write(f"fraction_20x\t{pct_20x}\n")
-    out.write(f"fraction_30x\t{pct_30x}\n")
-    out.write(f"status\t{status}\n")
+    out.write("metric\tvalue\\n")
+    out.write(f"mean_depth\t{mean_depth}\\n")
+    out.write(f"fraction_10x\t{pct_10x}\\n")
+    out.write(f"fraction_20x\t{pct_20x}\\n")
+    out.write(f"fraction_30x\t{pct_30x}\\n")
+    out.write(f"status\t{status}\\n")
 
 print(f"Coverage QC: mean depth={mean_depth}, 20x fraction={pct_20x} — {status}")
 PYEOF

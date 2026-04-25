@@ -83,12 +83,12 @@ threshold = ${params.max_duplication_rate}
 flag = "FAIL" if isinstance(dup_rate, float) and dup_rate > threshold else "PASS"
 
 with open("duplicate_summary.txt", "w") as out:
-    out.write(f"step=duplicate_metrics\n")
-    out.write(f"dataset=${meta.id}\n")
-    out.write(f"max_duplication_rate={threshold}\n")
-    out.write(f"duplication_rate={dup_rate}\n")
-    out.write(f"estimated_library_size={est_library}\n")
-    out.write(f"status={flag}\n")
+    out.write(f"step=duplicate_metrics\\n")
+    out.write(f"dataset=${meta.id}\\n")
+    out.write(f"max_duplication_rate={threshold}\\n")
+    out.write(f"duplication_rate={dup_rate}\\n")
+    out.write(f"estimated_library_size={est_library}\\n")
+    out.write(f"status={flag}\\n")
 
 print(f"Duplicate metrics: {dup_rate:.4f} ({float(dup_rate)*100:.1f}%) — {flag}")
 PYEOF

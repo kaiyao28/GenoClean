@@ -98,18 +98,18 @@ outliers = [(fid, iid, r) for fid, iid, r in data if r < lo or r > hi]
 
 with open("heterozygosity_outliers.txt", "w") as out:
     for fid, iid, r in outliers:
-        out.write(f"{fid}\t{iid}\n")
+        out.write(f"{fid}\t{iid}\\n")
 
 with open("heterozygosity_summary.txt", "w") as out:
-    out.write(f"step=heterozygosity\n")
-    out.write(f"dataset=${meta.id}\n")
-    out.write(f"sd_threshold=${params.heterozygosity_sd}\n")
-    out.write(f"mean_het_rate={mean_het:.6f}\n")
-    out.write(f"sd_het_rate={sd_het:.6f}\n")
-    out.write(f"lower_cutoff={lo:.6f}\n")
-    out.write(f"upper_cutoff={hi:.6f}\n")
-    out.write(f"n_samples={len(data)}\n")
-    out.write(f"n_outliers_removed={len(outliers)}\n")
+    out.write(f"step=heterozygosity\\n")
+    out.write(f"dataset=${meta.id}\\n")
+    out.write(f"sd_threshold=${params.heterozygosity_sd}\\n")
+    out.write(f"mean_het_rate={mean_het:.6f}\\n")
+    out.write(f"sd_het_rate={sd_het:.6f}\\n")
+    out.write(f"lower_cutoff={lo:.6f}\\n")
+    out.write(f"upper_cutoff={hi:.6f}\\n")
+    out.write(f"n_samples={len(data)}\\n")
+    out.write(f"n_outliers_removed={len(outliers)}\\n")
 
 print(f"Heterozygosity: {len(outliers)} outliers flagged "
       f"(mean={mean_het:.4f}, SD={sd_het:.4f}, "
