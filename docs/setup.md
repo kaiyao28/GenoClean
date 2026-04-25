@@ -340,6 +340,39 @@ docker version
 docker info
 ```
 
+### Docker fails with `input/output error` while pulling
+
+This usually means Docker Desktop's internal Linux storage is full, partially
+corrupted, or contains a broken layer from a previous failed pull.
+
+First restart Docker Desktop. Then try:
+
+```bash
+docker image rm ghcr.io/kaiyao28/genetic-qc:1.0
+docker builder prune
+docker system prune
+```
+
+Then re-run:
+
+```bash
+bash test_data/run_smoke_tests.sh
+```
+
+If it still fails, increase Docker Desktop disk space:
+
+```text
+Docker Desktop -> Settings -> Resources -> Advanced -> Disk image size
+```
+
+As a last resort:
+
+```text
+Docker Desktop -> Troubleshoot -> Clean / Purge data
+```
+
+This removes local Docker images and containers, but not your Git repository.
+
 ### `docker pull ghcr.io/kaiyao28/genetic-qc:1.0` says denied
 
 The GHCR package is private or the image has not been published. Maintainers should check GitHub Actions and package visibility.

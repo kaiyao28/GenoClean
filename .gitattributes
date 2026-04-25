@@ -1,0 +1,14 @@
+*.sh text eol=lf
+*.nf text eol=lf
+*.config text eol=lf
+Dockerfile text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.csv text eol=lf
+*.tsv text eol=lf
+*.vcf text eol=lf
+*.ped text eol=lf
+*.map text eol=lf
+*.fa text eol=lf
+*.fai text eol=lf

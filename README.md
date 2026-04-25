@@ -26,10 +26,10 @@ Recommended setup: use Nextflow plus the published Docker image. Docker provides
 docker pull ghcr.io/kaiyao28/genetic-qc:1.0
 ```
 
-Then run with the Docker profile:
+Then run the bundled smoke tests with the Docker profile:
 
 ```bash
-nextflow run wgs_wes_qc/main.nf ... -profile docker
+bash test_data/run_smoke_tests.sh
 ```
 
 For detailed setup instructions on Windows, Linux/macOS, and HPC clusters, see [Setup Guide](docs/setup.md).
@@ -211,6 +211,12 @@ bash test_data/run_smoke_tests.sh
 ```
 
 This checks Docker and Nextflow, pulls `ghcr.io/kaiyao28/genetic-qc:1.0`, prepares the SNP-array example data inside Docker, then runs both example workflows in variant-only report mode.
+
+The script shows Docker disk usage first and skips `docker pull` if the image is already present. To force a fresh pull:
+
+```bash
+GENETIC_QC_FORCE_PULL=true bash test_data/run_smoke_tests.sh
+```
 
 Quick VCF smoke test:
 

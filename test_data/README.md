@@ -21,6 +21,22 @@ SNP-array variant-only smoke test
 
 It is the recommended first check after cloning the repository.
 
+If the Docker image is already present locally, the script skips `docker pull`.
+To force a fresh pull:
+
+```bash
+GENETIC_QC_FORCE_PULL=true bash test_data/run_smoke_tests.sh
+```
+
+If Docker fails with an `input/output error` while extracting an image layer,
+restart Docker Desktop and clean old Docker data:
+
+```bash
+docker image rm ghcr.io/kaiyao28/genetic-qc:1.0
+docker builder prune
+docker system prune
+```
+
 ## WGS/WES VCF Smoke Test
 
 Use the VCF fixture for a quick variant-level test:

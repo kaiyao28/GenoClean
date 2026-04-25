@@ -18,11 +18,11 @@
 #    docker run --rm genetic-qc:1.0 Rscript  --version
 #
 #  Push to registry (optional):
-#    docker tag genetic-qc:1.0 ghcr.io/yourname/genetic-qc:1.0
-#    docker push ghcr.io/yourname/genetic-qc:1.0
+#    docker tag genetic-qc:1.0 ghcr.io/kaiyao28/genetic-qc:1.0
+#    docker push ghcr.io/kaiyao28/genetic-qc:1.0
 #
 #  Convert to Singularity SIF for HPC:
-#    apptainer build genetic-qc.sif docker-daemon://genetic-qc:1.0
+#    apptainer build genetic-qc.sif docker://ghcr.io/kaiyao28/genetic-qc:1.0
 # =============================================================================
 
 FROM condaforge/mambaforge:23.11.0-0

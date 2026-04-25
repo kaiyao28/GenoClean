@@ -2,6 +2,7 @@
 set -euo pipefail
 
 IMAGE="${GENETIC_QC_DOCKER_IMAGE:-ghcr.io/kaiyao28/genetic-qc:1.0}"
+FORCE_PULL="${GENETIC_QC_FORCE_PULL:-false}"
 
 echo "Genetic QC smoke tests"
 echo "Docker image: ${IMAGE}"
@@ -25,8 +26,51 @@ if [ ! -f "nextflow.config" ]; then
     exit 1
 fi
 
+echo "Docker storage summary:"
+docker system df || true
+echo
+
+print_docker_recovery_help() {
+    cat << EOF
+
+Docker could not pull/extract the image.
+
+This is usually a Docker Desktop / WSL storage problem, not a pipeline problem.
+Common causes are:
+  - Docker Desktop virtual disk is full
+  - a previous failed pull left a partial/broken image layer
+  - Docker Desktop needs a restart
+
+Try these steps, then re-run:
+
+  docker image rm ${IMAGE}
+  docker builder prune
+  docker system prune
+
+If Docker still reports input/output error, restart Docker Desktop.
+If it still fails after restart, open Docker Desktop:
+
+  Settings -> Resources -> Advanced -> increase disk image size
+
+or:
+
+  Troubleshoot -> Clean / Purge data
+
+Warning: Docker Desktop purge removes local Docker images and containers, but
+not your Git repository files.
+EOF
+}
+
 echo "Checking Docker image..."
-docker pull "${IMAGE}"
+if docker image inspect "${IMAGE}" >/dev/null 2>&1 && [ "${FORCE_PULL}" != "true" ]; then
+    echo "Image already exists locally; skipping docker pull."
+    echo "Set GENETIC_QC_FORCE_PULL=true to force a fresh pull."
+else
+    if ! docker pull "${IMAGE}"; then
+        print_docker_recovery_help
+        exit 1
+    fi
+fi
 echo
 
 echo "Preparing SNP-array PLINK binary test data..."
