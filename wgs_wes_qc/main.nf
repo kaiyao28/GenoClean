@@ -269,7 +269,7 @@ workflow {
 }
 
 process SELECT_CHROMOSOME {
-    label 'process_medium'
+    label 'process_low'
     publishDir "${params.outdir}/variant_qc/chromosomes", mode: params.publish_dir_mode
 
     input:
