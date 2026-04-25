@@ -1,38 +1,81 @@
 # Genetic QC Nextflow Pipeline
 
-A reproducible Nextflow DSL2 pipeline for genetic quality control, with two
-independent workflows:
+A reproducible Nextflow DSL2 pipeline for genetic quality control.
 
-- **`snp_array_qc/`** — QC for PLINK binary files from SNP arrays (GWAS-style)
-- **`wgs_wes_qc/`** — QC for whole-genome or whole-exome sequencing data
+The project contains two independent workflows:
 
-All thresholds are stored in config files and can be overridden at runtime
-without editing any code. Every QC module can be independently enabled or disabled.
+- `snp_array_qc/`: QC for PLINK binary files from SNP-array or GWAS-style data.
+- `wgs_wes_qc/`: QC for whole-genome or whole-exome sequencing data.
 
----
+The pipeline separates variant-level QC from sample-level QC. This is important because variant-level QC can often be run per chromosome, while sample-level QC usually requires genome-wide context.
+
+All thresholds are defined in config files and can be overridden at runtime. Individual modules and whole QC phases can be enabled or disabled with parameters.
+
+## Workflow Design
+
+Both workflows follow the same high-level structure:
+
+```text
+01_input_check
+02_variant_level_qc
+03_sample_level_qc
+04_final_report
+```
+
+Variant-level QC includes filters and metrics applied to variants, sites, or genotypes. These steps can often run per chromosome:
+
+- duplicate variant checks
+- variant missingness
+- HWE filtering
+- MAF filtering
+- site-level filtering
+- genotype-level filtering
+- Ti/Tv and variant count summaries
+- chromosome merge or aggregation
+
+Sample-level QC includes filters and metrics applied to individuals. These steps should be treated as final only when all autosomes are present:
+
+- sample missingness
+- heterozygosity
+- sex check
+- relatedness
+- ancestry PCA
+- contamination
+- sample-level variant counts
+- coverage and alignment metrics
+
+The `sample_qc_scope` parameter controls this behavior:
+
+| Value | Behavior |
+|-------|----------|
+| `auto` | Use `genome_wide` when all autosomes are present; otherwise mark sample QC as provisional. |
+| `genome_wide` | Treat sample-level QC as final. |
+| `provisional` | Run sample-level QC but mark it as not suitable for final filtering. |
+| `skip` | Skip sample-level QC. |
 
 ## Setup
 
-**Step 1 — install** (pick one):
+Install one execution environment:
 
 ```bash
-bash setup.sh              # Mamba/Conda environment  (works everywhere)
-bash setup.sh docker       # Docker image              (local / cloud)
-bash setup.sh singularity  # Docker → Singularity SIF  (HPC clusters)
+bash setup.sh
+bash setup.sh docker
+bash setup.sh singularity
 ```
 
-**Step 2 — test all tools** and review the log:
+Then test the tools:
 
 ```bash
-bash test_env.sh               # tools on PATH  (after conda setup)
-bash test_env.sh docker        # tools inside Docker image
-bash test_env.sh singularity   # tools inside Singularity SIF
+bash test_env.sh
+bash test_env.sh docker
+bash test_env.sh singularity
 ```
 
-Each tool is reported as `PASS`, `WARN` (optional — pipeline still runs), or `FAIL`
-(required — must fix before running). A full log is written to `test_results.log`.
+Each tool is reported as `PASS`, `WARN`, or `FAIL`. The full log is written to `test_results.log`.
 
-```
+Example output:
+
+```text
 [PASS]  PLINK 1.9              PLINK v1.90b6.21
 [PASS]  PLINK2                 PLINK v2.00a5.12
 [PASS]  samtools               samtools 1.18
@@ -41,22 +84,19 @@ Each tool is reported as `PASS`, `WARN` (optional — pipeline still runs), or `
 [PASS]  FastQC                 FastQC v0.12.1
 [PASS]  mosdepth               mosdepth 0.3.6
 [PASS]  GATK                   4.5.0.0
-[WARN]  VerifyBamID2           not found (optional — contamination uses GATK fallback)
+[WARN]  VerifyBamID2           not found
 [PASS]  Python 3               Python 3.10.12
 [PASS]  R                      R version 4.3.1
 Results: 13 PASS  1 WARN  0 FAIL
 ```
 
-If any `FAIL` lines appear, re-run `setup.sh`, check the error, or inspect
-[containers/environment.yml](containers/environment.yml) for version constraints.
+If any required tool reports `FAIL`, re-run `setup.sh`, inspect the error, or check [containers/environment.yml](containers/environment.yml).
 
-> **HPC note:** after `bash setup.sh singularity`, copy
-> `containers/genetic-qc.sif` to shared cluster storage and update the path
-> in `conf/singularity.config`.
+For HPC use, after `bash setup.sh singularity`, copy `containers/genetic-qc.sif` to shared cluster storage and update `conf/singularity.config`.
 
----
+## SNP Array QC
 
-## SNP Array QC — running the pipeline
+Run the SNP-array workflow:
 
 ```bash
 nextflow run snp_array_qc/main.nf \
@@ -65,7 +105,7 @@ nextflow run snp_array_qc/main.nf \
   -profile docker
 ```
 
-With a 1000 Genomes reference panel for ancestry PCA:
+Run with a reference panel for ancestry PCA:
 
 ```bash
 nextflow run snp_array_qc/main.nf \
@@ -75,35 +115,39 @@ nextflow run snp_array_qc/main.nf \
   -profile singularity
 ```
 
+Run a chromosome test and mark sample QC as provisional:
+
+```bash
+nextflow run snp_array_qc/main.nf \
+  --bfile data/raw/genotypes \
+  --chroms 22 \
+  --sample_qc_scope provisional \
+  --outdir results/snp_array_qc_chr22
+```
+
+Skip sample-level QC:
+
+```bash
+nextflow run snp_array_qc/main.nf \
+  --bfile data/raw/genotypes \
+  --run_sample_qc false \
+  --outdir results/snp_array_variant_only
+```
+
 Override thresholds:
 
 ```bash
 nextflow run snp_array_qc/main.nf \
   --bfile data/raw/genotypes \
-  --maf 0.05 --hwe_p 1e-4 --sample_missingness 0.05 \
+  --maf 0.05 \
+  --hwe_p 1e-4 \
+  --sample_missingness 0.05 \
   --outdir results/snp_array_qc_loose
 ```
 
-Skip individual modules:
+## WGS / WES QC
 
-```bash
-nextflow run snp_array_qc/main.nf \
-  --bfile data/raw/genotypes \
-  --run_ancestry_pca false --run_maf_filter false \
-  --outdir results/snp_array_qc_no_pca
-```
-
-Resume an interrupted run (completed steps are not re-run):
-
-```bash
-nextflow run snp_array_qc/main.nf --bfile data/raw/genotypes --outdir results/snp_array_qc -resume
-```
-
----
-
-## WGS / WES QC — running the pipeline
-
-BAM input, WES mode:
+Run WES QC from BAM input:
 
 ```bash
 nextflow run wgs_wes_qc/main.nf \
@@ -116,56 +160,57 @@ nextflow run wgs_wes_qc/main.nf \
   -profile singularity
 ```
 
-VCF input — variant-level QC only:
+Run VCF-based variant QC by chromosome, then merge and run genome-wide sample QC:
 
 ```bash
 nextflow run wgs_wes_qc/main.nf \
   --input_type vcf \
   --samplesheet samplesheet.csv \
   --reference_fasta /data/reference/GRCh38.fa \
-  --mode wes \
-  --run_fastqc false --run_alignment_metrics false \
-  --run_duplicate_metrics false --run_coverage_qc false \
-  --run_contamination false \
-  --outdir results/vcf_qc
+  --mode wgs \
+  --chroms 1-22 \
+  --outdir results/vcf_qc \
+  -profile docker
 ```
 
-SLURM cluster with Singularity:
+Run a chromosome-only test:
 
 ```bash
-nextflow run snp_array_qc/main.nf \
-  --bfile /shared/data/genotypes \
-  --outdir /shared/results/snp_qc \
-  -profile slurm,singularity -resume
+nextflow run wgs_wes_qc/main.nf \
+  --input_type vcf \
+  --samplesheet samplesheet.csv \
+  --reference_fasta /data/reference/GRCh38.fa \
+  --mode wgs \
+  --chroms 22 \
+  --sample_qc_scope provisional \
+  --outdir results/vcf_chr22_test
 ```
 
----
+## Params Files
 
-## Using a params file
+Run with a params file:
 
 ```bash
 nextflow run snp_array_qc/main.nf -params-file assets/example_params.yml
 ```
 
-See [assets/example_params.yml](assets/example_params.yml) for a fully annotated example.
+See [assets/example_params.yml](assets/example_params.yml) for an annotated example.
 
----
+## Execution Profiles
 
-## Execution profiles
-
-Profiles can be combined: `-profile slurm,singularity`
+Profiles can be combined, for example `-profile slurm,singularity`.
 
 | Profile | When to use |
 |---------|-------------|
-| `standard` | tools already on PATH |
-| `docker` | local machine or cloud |
-| `singularity` | HPC clusters (Singularity / Apptainer) |
-| `conda` | no container daemon available |
-| `slurm` | SLURM scheduler — combine with a container profile |
-| `lsf` | IBM LSF scheduler |
-| `awsbatch` | AWS Batch |
+| `standard` | Tools are already available on `PATH`. |
+| `docker` | Local machine or cloud execution with Docker. |
+| `singularity` | HPC clusters using Singularity or Apptainer. |
+| `conda` | Systems without a container daemon. |
+| `slurm` | SLURM scheduler; usually combine with a container profile. |
+| `lsf` | IBM LSF scheduler. |
+| `awsbatch` | AWS Batch. |
 
-Edit queue name and account in `nextflow.config`:
+Edit queue and account settings in `nextflow.config`:
 
 ```groovy
 slurm {
@@ -174,101 +219,96 @@ slurm {
 }
 ```
 
----
+## Key Parameters
 
-## Parameter reference
-
-### SNP array
+### Shared
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `--bfile` | required | PLINK binary prefix (no extension) |
-| `--pheno` | null | phenotype / covariate TSV |
-| `--reference_panel` | null | 1000G prefix for ancestry PCA |
-| `--sample_missingness` | 0.02 | max fraction missing per sample |
-| `--variant_missingness` | 0.02 | max fraction missing per variant |
-| `--hwe_p` | 1e-6 | HWE p-value cutoff |
-| `--maf` | 0.01 | minimum minor allele frequency |
-| `--heterozygosity_sd` | 3 | het outlier SD threshold |
-| `--relatedness_pi_hat` | 0.1875 | PI_HAT cutoff for related pairs |
-| `--pca_outlier_sd` | 6 | SD threshold for ancestry outliers |
-| `--run_sex_check` | true | enable/disable sex check |
-| `--run_ancestry_pca` | true | enable/disable PCA |
-| `--keep_intermediate` | false | retain per-step PLINK files |
-| `--outdir` | results | output directory |
+| `--run_variant_qc` | true | Enable variant-level QC phase. |
+| `--run_sample_qc` | true | Enable sample-level QC phase. |
+| `--chroms` | 1-22 | Chromosomes to process. Accepts `1-22`, `22`, `1,2,22`, or `all`. |
+| `--sample_qc_scope` | auto | One of `auto`, `genome_wide`, `provisional`, or `skip`. |
+| `--keep_intermediate` | false | Retain intermediate files. |
+| `--outdir` | results | Output directory. |
+
+### SNP Array
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `--bfile` | required | PLINK binary prefix without `.bed`, `.bim`, `.fam`. |
+| `--pheno` | null | Optional phenotype or covariate file. |
+| `--reference_panel` | null | Optional reference panel prefix for ancestry PCA. |
+| `--sample_missingness` | 0.02 | Maximum missing genotype fraction per sample. |
+| `--variant_missingness` | 0.02 | Maximum missing genotype fraction per variant. |
+| `--hwe_p` | 1e-6 | HWE p-value cutoff. |
+| `--maf` | 0.01 | Minimum minor allele frequency. |
+| `--heterozygosity_sd` | 3 | Heterozygosity outlier SD threshold. |
+| `--relatedness_pi_hat` | 0.1875 | Relatedness cutoff. |
+| `--pca_outlier_sd` | 6 | PCA outlier SD threshold. |
 
 ### WGS / WES
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `--input_type` | bam | fastq / bam / cram / vcf |
-| `--mode` | wes | wes / wgs |
-| `--samplesheet` | required | CSV: sample,file1[,file2] |
-| `--reference_fasta` | required | reference FASTA (.fai required) |
-| `--target_intervals` | required (WES) | capture BED file |
-| `--min_mean_depth_wes` | 30 | min mean on-target depth |
-| `--min_mean_depth_wgs` | 20 | min mean genome-wide depth |
-| `--min_target_20x_fraction` | 0.80 | fraction of targets ≥ 20x |
-| `--max_contamination` | 0.03 | max FREEMIX contamination |
-| `--max_duplication_rate` | 0.20 | max PCR duplication rate |
-| `--min_gq` | 20 | min genotype quality per call |
-| `--min_dp` | 10 | min read depth per genotype |
-| `--variant_filter_method` | hard_filter | hard_filter or vqsr |
-| `--pca_maf` | 0.05 | min MAF for PCA variant selection |
-| `--pca_autosomes_only` | true | restrict PCA to autosomes |
-| `--outdir` | results | output directory |
+| `--input_type` | bam | One of `fastq`, `bam`, `cram`, or `vcf`. |
+| `--mode` | wes | One of `wes` or `wgs`. |
+| `--samplesheet` | required | CSV with `sample,file1[,file2]`. |
+| `--reference_fasta` | required | Reference FASTA. A `.fai` index is expected. |
+| `--target_intervals` | required for WES | Capture target BED file. |
+| `--min_mean_depth_wes` | 30 | Minimum mean on-target depth. |
+| `--min_mean_depth_wgs` | 20 | Minimum mean genome-wide depth. |
+| `--min_target_20x_fraction` | 0.80 | Minimum fraction of targets covered at least 20x. |
+| `--max_contamination` | 0.03 | Maximum allowed contamination estimate. |
+| `--max_duplication_rate` | 0.20 | Maximum allowed duplicate rate. |
+| `--min_gq` | 20 | Minimum genotype quality. |
+| `--min_dp` | 10 | Minimum genotype depth. |
+| `--variant_filter_method` | hard_filter | One of `hard_filter` or `vqsr`. |
+| `--pca_maf` | 0.05 | Minimum MAF for PCA variant selection. |
+| `--pca_autosomes_only` | true | Restrict PCA variant selection to autosomes. |
 
----
+## Output Structure
 
-## Output structure
+SNP-array output:
 
-### SNP array
-
-```
+```text
 results/snp_array_qc/
-├── logs/
-│   ├── versions.txt            # tool versions used in this run
-│   └── input_summary.txt       # initial sample and variant counts
-├── cleaned_data/               # final QC-passed PLINK files (.bed/.bim/.fam)
-├── exclusion_lists/            # all_excluded_samples.txt / all_excluded_variants.txt
-├── qc_tables/                  # per-step summary tables
-├── qc_plots/                   # PNG plots (missingness, het, PCA, relatedness)
-└── final_report.html           # HTML report with attrition table and embedded plots
+|-- logs/
+|-- cleaned_data/
+|-- exclusion_lists/
+|-- qc_tables/
+|-- qc_plots/
+`-- final_report.html
 ```
 
-### WGS / WES
+WGS/WES output:
 
-```
+```text
 results/wgs_wes_qc/
-├── logs/versions.txt
-├── fastqc/                     # FastQC HTML reports (FASTQ input only)
-├── alignment_metrics/          # samtools + Picard metrics per sample
-├── duplicate_metrics/          # marked BAMs and duplication rate tables
-├── coverage_qc/                # mosdepth depth summaries and plots
-├── contamination/              # VerifyBamID2 results
-├── sex_check/                  # inferred vs reported sex
-├── variant_calling_qc/         # bcftools stats, Ti/Tv tables
-├── ancestry_pca/               # PC scores, eigenvalues, outlier lists, plots
-├── cleaned_data/               # filtered VCF (genotype-filtered, PASS only)
-├── qc_tables/
-├── qc_plots/
-└── wgs_wes_final_report.html
+|-- logs/
+|-- fastqc/
+|-- alignment_metrics/
+|-- duplicate_metrics/
+|-- coverage_qc/
+|-- contamination/
+|-- sex_check/
+|-- variant_calling_qc/
+|-- ancestry_pca/
+|-- cleaned_data/
+|-- qc_tables/
+|-- qc_plots/
+`-- wgs_wes_final_report.html
 ```
-
----
 
 ## Documentation
 
-- [SNP Array QC Manual](docs/snp_array_qc_manual.md) — module-by-module reference
-- [WGS/WES QC Manual](docs/wgs_wes_qc_manual.md) — module-by-module reference
-- [References](docs/references.md) — Anderson 2010, GATK, gnomAD, and all cited tools
-
----
+- [SNP Array QC Manual](docs/snp_array_qc_manual.md)
+- [WGS/WES QC Manual](docs/wgs_wes_qc_manual.md)
+- [References](docs/references.md)
 
 ## References
 
-Anderson et al. 2010, *Nature Protocols* — GWAS QC thresholds (SNP array defaults).
-GATK Best Practices — WGS/WES variant calling, hard-filtering, and VQSR.
-gnomAD v4.0 — contamination cutoffs and sample-level QC framework.
-#   G e n e t i c Q C  
- 
+- Anderson et al. 2010, *Nature Protocols*: GWAS QC thresholds.
+- GATK Best Practices: WGS/WES variant filtering and VQSR.
+- gnomAD v4.0: contamination cutoffs and sample-level QC framework.
+- PLINK 1.9 and PLINK 2 documentation.
