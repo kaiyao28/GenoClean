@@ -102,7 +102,7 @@ threshold_rows = [
 ]
 
 now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-html_doc = f"""<!DOCTYPE html>
+html_doc = f'''<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -140,7 +140,7 @@ tr:nth-child(even) {{ background: #f9f9f9; }}
 </table>
 </body>
 </html>
-"""
+'''
 
 with open("wgs_wes_final_report.html", "w") as out:
     out.write(html_doc)

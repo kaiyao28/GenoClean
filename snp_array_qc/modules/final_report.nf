@@ -114,7 +114,7 @@ scope_warning = ""
 if "${qc_scope}" == "provisional":
     scope_warning = "<p class='warn'>Sample-level QC is provisional because not all autosomes were analysed.</p>"
 
-html_doc = f"""<!DOCTYPE html>
+html_doc = f'''<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -161,7 +161,7 @@ tr:nth-child(even) {{ background: #f9f9f9; }}
 </table>
 </body>
 </html>
-"""
+'''
 
 with open("final_report.html", "w") as out:
     out.write(html_doc)
