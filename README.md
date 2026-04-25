@@ -20,7 +20,7 @@ git clone https://github.com/kaiyao28/GeneticQC.git
 cd GeneticQC
 ```
 
-Recommended setup: use the published Docker image. This keeps all bioinformatics packages outside your local machine and makes runs more reproducible.
+Recommended setup: use Nextflow plus the published Docker image. Docker provides the bioinformatics tools, but Nextflow still needs to be installed on the host machine.
 
 ```bash
 docker pull ghcr.io/kaiyao28/genetic-qc:1.0
@@ -32,86 +32,7 @@ Then run with the Docker profile:
 nextflow run wgs_wes_qc/main.nf ... -profile docker
 ```
 
-The Docker profile uses this image by default:
-
-```bash
-ghcr.io/kaiyao28/genetic-qc:1.0
-```
-
-Test the Docker image:
-
-```bash
-bash test_env.sh docker
-```
-
-To test a different image name, for example a local build:
-
-```bash
-GENETIC_QC_DOCKER_IMAGE=genetic-qc:1.0 bash test_env.sh docker
-```
-
-On Windows PowerShell without WSL or Git Bash, use direct `docker run` checks instead of `test_env.sh`.
-
-On Windows PowerShell, `.sh` files do not run natively unless you use WSL or Git Bash. You can test the image directly from PowerShell:
-
-```powershell
-docker run --rm genetic-qc:1.0 plink --version
-docker run --rm genetic-qc:1.0 bcftools --version
-docker run --rm genetic-qc:1.0 gatk --version
-```
-
-If Docker reports a message about `dockerDesktopLinuxEngine`, Docker Desktop is not running or the Linux engine is not available. Open Docker Desktop, wait until it says the engine is running, then check:
-
-```powershell
-docker version
-docker info
-```
-
-If Docker Desktop is not installed, install it first and enable the WSL2/Linux backend.
-
-Each tool check is reported as `PASS`, `WARN`, or `FAIL` when using `test_env.sh`. The full log is written to `test_results.log`.
-
-Example output:
-
-```text
-[PASS]  PLINK 1.9              PLINK v1.90b6.21
-[PASS]  PLINK2                 PLINK v2.00a5.12
-[PASS]  samtools               samtools 1.18
-[PASS]  bcftools               bcftools 1.18
-[PASS]  picard                 3.1.1
-[PASS]  FastQC                 FastQC v0.12.1
-[PASS]  mosdepth               mosdepth 0.3.6
-[PASS]  GATK                   4.5.0.0
-[WARN]  VerifyBamID2           not found
-[PASS]  Python 3               Python 3.10.12
-[PASS]  R                      R version 4.3.1
-Results: 13 PASS  1 WARN  0 FAIL
-```
-
-If a required tool reports `FAIL`, pull the Docker image again or rebuild it locally.
-
-Maintainers: the registry image is published by `.github/workflows/docker-publish.yml`.
-
-```bash
-git add .github/workflows/docker-publish.yml nextflow.config conf/docker.config test_env.sh README.md
-git commit -m "Publish Docker image to GHCR"
-git push
-```
-
-After pushing, open GitHub Actions, run or check `Publish Docker Image`, then make the GHCR package public if needed. Once public, a fresh clone should work with:
-
-```bash
-docker pull ghcr.io/kaiyao28/genetic-qc:1.0
-bash test_env.sh docker
-```
-
-For HPC use, convert the Docker image to Singularity/Apptainer format and update `conf/singularity.config`:
-
-```bash
-apptainer build containers/genetic-qc.sif docker://ghcr.io/kaiyao28/genetic-qc:1.0
-```
-
-Conda/Mamba setup is still available for development through [containers/environment.yml](containers/environment.yml), but Docker is the recommended path for users.
+For detailed setup instructions on Windows, Linux/macOS, and HPC clusters, see [Setup Guide](docs/setup.md).
 
 ## Workflow Design
 

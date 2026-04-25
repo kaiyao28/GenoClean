@@ -1,0 +1,368 @@
+# Setup Guide
+
+This guide explains how to set up the Genetic QC Nextflow pipeline on a laptop, workstation, or HPC cluster.
+
+The key idea is:
+
+```text
+Nextflow runs on your computer.
+Docker or Apptainer provides the bioinformatics tools.
+```
+
+So you need both:
+
+```text
+1. Nextflow on the host machine
+2. A container engine:
+   - Docker for laptops/workstations
+   - Apptainer or Singularity for HPC clusters
+```
+
+## What Each Tool Does
+
+| Tool | Why it is needed |
+|------|------------------|
+| Git | Downloads the pipeline repository. |
+| Java | Required by Nextflow. Use Java 17 or newer. |
+| Nextflow | Runs the workflow and launches each QC step. |
+| Docker | Runs the prebuilt container image on laptops/workstations. |
+| Apptainer/Singularity | Runs the container image on HPC clusters where Docker is usually not allowed. |
+
+The Docker image contains tools such as PLINK, PLINK2, bcftools, samtools, GATK, FastQC, mosdepth, Python, and R.
+
+## Quick Decision Guide
+
+| Where are you running? | Recommended setup |
+|------------------------|-------------------|
+| Windows laptop | Docker Desktop on Windows + Nextflow inside WSL Ubuntu |
+| Linux workstation | Nextflow + Docker |
+| macOS workstation | Nextflow + Docker Desktop |
+| HPC cluster | Nextflow + Apptainer/Singularity + scheduler profile |
+
+## Windows Setup
+
+Recommended Windows setup:
+
+```text
+PowerShell:
+  install/start Docker Desktop
+
+WSL Ubuntu:
+  install Java
+  install Nextflow
+  clone and run the pipeline
+```
+
+PowerShell is not Bash. Commands such as `curl -s ... | bash`, `export PATH=...`, and `bash test_env.sh` are Linux/Bash commands. Use them inside WSL Ubuntu, not plain PowerShell.
+
+### 1. Install Docker Desktop
+
+Install Docker Desktop:
+
+```text
+https://www.docker.com/products/docker-desktop/
+```
+
+Open Docker Desktop and wait until it says the engine is running.
+
+In PowerShell, check:
+
+```powershell
+docker version
+docker info
+```
+
+Pull the published image:
+
+```powershell
+docker pull ghcr.io/kaiyao28/genetic-qc:1.0
+```
+
+If this fails with `dockerDesktopLinuxEngine`, Docker Desktop is not running or the Linux/WSL backend is not enabled.
+
+### 2. Install WSL Ubuntu
+
+In PowerShell:
+
+```powershell
+wsl.exe --install Ubuntu
+```
+
+Restart Windows if prompted. Then open Ubuntu from the Start Menu.
+
+### 3. Install Java, Git, and Nextflow inside Ubuntu
+
+Inside Ubuntu:
+
+```bash
+sudo apt update
+sudo apt install -y openjdk-17-jre curl git
+```
+
+Install Nextflow:
+
+```bash
+curl -s https://get.nextflow.io | bash
+mkdir -p ~/bin
+mv nextflow ~/bin/
+echo 'export PATH=$HOME/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+```
+
+Check:
+
+```bash
+java -version
+nextflow -version
+```
+
+### 4. Enable Docker access from WSL
+
+In Docker Desktop:
+
+```text
+Settings -> Resources -> WSL Integration -> enable Ubuntu
+```
+
+Back in Ubuntu:
+
+```bash
+docker version
+docker pull ghcr.io/kaiyao28/genetic-qc:1.0
+```
+
+### 5. Clone and run the test workflow
+
+Inside Ubuntu:
+
+```bash
+git clone https://github.com/kaiyao28/GeneticQC.git
+cd GeneticQC
+```
+
+Run the small VCF smoke test:
+
+```bash
+nextflow run wgs_wes_qc/main.nf \
+  --input_type vcf \
+  --samplesheet test_data/wgs_wes/samplesheet_vcf.csv \
+  --reference_fasta test_data/reference/mini.fa \
+  --mode wgs \
+  --chroms 22 \
+  --run_variant_qc true \
+  --run_sample_qc false \
+  --run_final_report true \
+  --outdir results/test_vcf_variant_only \
+  -profile docker
+```
+
+## Linux or macOS Setup
+
+Install Java 17 or newer, Git, Docker, and Nextflow.
+
+Check:
+
+```bash
+java -version
+git --version
+docker version
+nextflow -version
+```
+
+Install Nextflow if needed:
+
+```bash
+curl -s https://get.nextflow.io | bash
+mkdir -p ~/bin
+mv nextflow ~/bin/
+echo 'export PATH=$HOME/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+```
+
+Clone the pipeline:
+
+```bash
+git clone https://github.com/kaiyao28/GeneticQC.git
+cd GeneticQC
+```
+
+Pull the Docker image:
+
+```bash
+docker pull ghcr.io/kaiyao28/genetic-qc:1.0
+```
+
+Run the smoke test:
+
+```bash
+nextflow run wgs_wes_qc/main.nf \
+  --input_type vcf \
+  --samplesheet test_data/wgs_wes/samplesheet_vcf.csv \
+  --reference_fasta test_data/reference/mini.fa \
+  --mode wgs \
+  --chroms 22 \
+  --run_variant_qc true \
+  --run_sample_qc false \
+  --run_final_report true \
+  --outdir results/test_vcf_variant_only \
+  -profile docker
+```
+
+## HPC Cluster Setup
+
+Most clusters do not allow Docker. Use Apptainer or Singularity instead.
+
+Typical requirements:
+
+```text
+Java
+Nextflow
+Apptainer or Singularity
+Scheduler profile, for example SLURM
+```
+
+Check available modules:
+
+```bash
+module avail java
+module avail nextflow
+module avail apptainer
+module avail singularity
+```
+
+Load modules. Exact names vary by cluster:
+
+```bash
+module load java
+module load nextflow
+module load apptainer
+```
+
+If Nextflow is not provided as a module, install it in your home directory:
+
+```bash
+curl -s https://get.nextflow.io | bash
+mkdir -p ~/bin
+mv nextflow ~/bin/
+export PATH="$HOME/bin:$PATH"
+```
+
+Create or pull a SIF image on shared storage:
+
+```bash
+mkdir -p containers
+apptainer pull containers/genetic-qc.sif docker://ghcr.io/kaiyao28/genetic-qc:1.0
+```
+
+If your cluster uses `singularity` instead of `apptainer`:
+
+```bash
+mkdir -p containers
+singularity pull containers/genetic-qc.sif docker://ghcr.io/kaiyao28/genetic-qc:1.0
+```
+
+Make sure `conf/singularity.config` points to the SIF file. The default is:
+
+```groovy
+process {
+    container = "${projectDir}/containers/genetic-qc.sif"
+}
+```
+
+If the SIF is elsewhere, use an absolute shared path:
+
+```groovy
+process {
+    container = "/shared/containers/genetic-qc.sif"
+}
+```
+
+Run with the cluster profile, for example SLURM plus Singularity:
+
+```bash
+nextflow run wgs_wes_qc/main.nf \
+  --input_type vcf \
+  --samplesheet samplesheet.csv \
+  --reference_fasta /shared/reference/GRCh38.fa \
+  --mode wgs \
+  --chroms 1-22 \
+  --outdir /shared/results/wgs_wes_qc \
+  -profile slurm,singularity \
+  -resume
+```
+
+Ask your cluster support team:
+
+```text
+Which scheduler is used: SLURM, LSF, PBS?
+Which module loads Java, Nextflow, and Apptainer/Singularity?
+Where should Nextflow work directories go?
+Which storage path is shared across compute nodes?
+Are internet pulls from compute/login nodes allowed?
+```
+
+## Testing The Environment
+
+If you are using Bash:
+
+```bash
+bash test_env.sh docker
+```
+
+For a different Docker image:
+
+```bash
+GENETIC_QC_DOCKER_IMAGE=my-image:tag bash test_env.sh docker
+```
+
+For Singularity/Apptainer:
+
+```bash
+bash test_env.sh singularity
+```
+
+On Windows PowerShell without WSL/Git Bash, test the Docker image directly:
+
+```powershell
+docker run --rm ghcr.io/kaiyao28/genetic-qc:1.0 plink --version
+docker run --rm ghcr.io/kaiyao28/genetic-qc:1.0 bcftools --version
+docker run --rm ghcr.io/kaiyao28/genetic-qc:1.0 gatk --version
+```
+
+## Common Problems
+
+### `nextflow: command not found`
+
+Nextflow is not installed or not on `PATH`.
+
+Check:
+
+```bash
+nextflow -version
+```
+
+If missing, install Nextflow and add it to `PATH`.
+
+### PowerShell `curl -s ... | bash` fails
+
+PowerShell is not Bash. Use WSL Ubuntu, Git Bash, or Linux/macOS.
+
+### Docker says `dockerDesktopLinuxEngine`
+
+Docker Desktop is not running, or WSL2/Linux backend is not enabled.
+
+Open Docker Desktop and check:
+
+```powershell
+docker version
+docker info
+```
+
+### `docker pull ghcr.io/kaiyao28/genetic-qc:1.0` says denied
+
+The GHCR package is private or the image has not been published. Maintainers should check GitHub Actions and package visibility.
+
+### Cluster does not allow Docker
+
+Use Apptainer/Singularity and the `singularity` profile instead of Docker.
+
