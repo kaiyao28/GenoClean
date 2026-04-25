@@ -49,13 +49,14 @@ include { FINAL_REPORT            } from './modules/final_report'
 // ── Chromosome range parser ───────────────────────────────────────────────────
 // Accepts: "1-22", "22", "1,2,22", "all" (treated as 1-22)
 def parseChroms(chrom_param) {
-    if (chrom_param == "all") return (1..22).collect { it.toString() }
-    if (chrom_param =~ /^\d+-\d+$/) {
-        def (s, e) = chrom_param.split('-').collect { it.toInteger() }
+    def param = chrom_param.toString()
+    if (param == "all") return (1..22).collect { it.toString() }
+    if (param =~ /^\d+-\d+$/) {
+        def (s, e) = param.split('-').collect { it.toInteger() }
         return (s..e).collect { it.toString() }
     }
-    if (chrom_param =~ /,/) return chrom_param.split(',')*.trim()
-    return [chrom_param.trim()]
+    if (param =~ /,/) return param.split(',')*.trim()
+    return [param.trim()]
 }
 
 // ── Determine effective sample QC scope ──────────────────────────────────────
