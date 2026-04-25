@@ -108,62 +108,44 @@ For HPC use, after `bash setup.sh singularity`, copy `containers/genetic-qc.sif`
 
 ## SNP Array QC
 
-Run the SNP-array workflow:
+This example runs the full SNP-array workflow:
 
-```bash
-nextflow run snp_array_qc/main.nf \
-  --bfile data/raw/genotypes \
-  --outdir results/snp_array_qc \
-  -profile docker
+```text
+01_input_check
+02_variant_level_qc
+03_sample_level_qc
+04_final_report
 ```
 
-Run with a reference panel for ancestry PCA:
+The reference panel is optional. If supplied, it should be a PLINK binary prefix with matching `.bed`, `.bim`, and `.fam` files, for example `data/1000G/1000G_hg38`.
 
 ```bash
 nextflow run snp_array_qc/main.nf \
   --bfile data/raw/genotypes \
   --reference_panel data/1000G/1000G_hg38 \
-  --outdir results/snp_array_qc \
-  -profile singularity
-```
-
-Run a chromosome test and mark sample QC as provisional:
-
-```bash
-nextflow run snp_array_qc/main.nf \
-  --bfile data/raw/genotypes \
-  --chroms 22 \
-  --sample_qc_scope provisional \
-  --outdir results/snp_array_qc_chr22
-```
-
-Run variant-level QC only and still generate a report:
-
-```bash
-nextflow run snp_array_qc/main.nf \
-  --bfile data/raw/genotypes \
   --run_variant_qc true \
-  --run_sample_qc false \
+  --run_sample_qc true \
+  --chroms 1-22 \
+  --sample_qc_scope auto \
   --run_final_report true \
-  --outdir results/snp_array_variant_only
+  --outdir results/snp_array_qc \
+  -profile docker
 ```
 
-In this mode, the final report contains the input and variant-level QC summaries, records sample-level QC as skipped, and avoids treating the run as a complete sample QC workflow.
-
-Override thresholds:
-
-```bash
-nextflow run snp_array_qc/main.nf \
-  --bfile data/raw/genotypes \
-  --maf 0.05 \
-  --hwe_p 1e-4 \
-  --sample_missingness 0.05 \
-  --outdir results/snp_array_qc_loose
-```
+For chromosome-only tests, variant-only runs, threshold overrides, skipped modules, and alternative reference-panel setups, see the [SNP Array QC Manual](docs/snp_array_qc_manual.md).
 
 ## WGS / WES QC
 
-Run WES QC from BAM input:
+This example runs the full WES workflow from BAM/CRAM input:
+
+```text
+01_input_check
+02_variant_level_qc
+03_sample_level_qc
+04_final_report
+```
+
+BAM/CRAM input supports sample-level sequencing QC such as alignment metrics, duplicate rate, coverage, contamination, and sex check. VCF input supports variant-level QC and VCF-based sample QC such as sample call rate, relatedness, and ancestry PCA.
 
 ```bash
 nextflow run wgs_wes_qc/main.nf \
@@ -172,24 +154,16 @@ nextflow run wgs_wes_qc/main.nf \
   --reference_fasta /data/reference/GRCh38.fa \
   --target_intervals /data/reference/exome_targets.bed \
   --mode wes \
+  --run_variant_qc true \
+  --run_sample_qc true \
+  --chroms 1-22 \
+  --sample_qc_scope auto \
+  --run_final_report true \
   --outdir results/wgs_wes_qc \
   -profile singularity
 ```
 
-Run VCF-based variant QC by chromosome, then merge and run genome-wide sample QC:
-
-```bash
-nextflow run wgs_wes_qc/main.nf \
-  --input_type vcf \
-  --samplesheet samplesheet.csv \
-  --reference_fasta /data/reference/GRCh38.fa \
-  --mode wgs \
-  --chroms 1-22 \
-  --outdir results/vcf_qc \
-  -profile docker
-```
-
-Run VCF variant-level QC only and still generate a report:
+This example runs the full VCF-based WGS/WES QC path: chromosome-level variant QC, merge, genome-wide sample QC, then final report.
 
 ```bash
 nextflow run wgs_wes_qc/main.nf \
@@ -199,25 +173,14 @@ nextflow run wgs_wes_qc/main.nf \
   --mode wgs \
   --chroms 1-22 \
   --run_variant_qc true \
-  --run_sample_qc false \
+  --run_sample_qc true \
+  --sample_qc_scope auto \
   --run_final_report true \
-  --outdir results/vcf_variant_only
+  --outdir results/vcf_qc \
+  -profile docker
 ```
 
-This is useful when you only need site/genotype filtering, Ti/Tv summaries, per-chromosome processing, and merged filtered VCF output. The report still runs and clearly states that sample-level modules were skipped.
-
-Run a chromosome-only test:
-
-```bash
-nextflow run wgs_wes_qc/main.nf \
-  --input_type vcf \
-  --samplesheet samplesheet.csv \
-  --reference_fasta /data/reference/GRCh38.fa \
-  --mode wgs \
-  --chroms 22 \
-  --sample_qc_scope provisional \
-  --outdir results/vcf_chr22_test
-```
+For FASTQ input, VCF-only runs, chromosome-only tests, skipped modules, provisional sample QC, and threshold overrides, see the [WGS/WES QC Manual](docs/wgs_wes_qc_manual.md).
 
 ## Params Files
 
@@ -228,6 +191,44 @@ nextflow run snp_array_qc/main.nf -params-file assets/example_params.yml
 ```
 
 See [assets/example_params.yml](assets/example_params.yml) for an annotated example.
+
+## Test Data
+
+Small toy files for smoke testing are available in [test_data/](test_data/). These examples are intentionally tiny and are meant to check pipeline wiring, not biological validity.
+
+Quick VCF smoke test:
+
+```bash
+nextflow run wgs_wes_qc/main.nf \
+  --input_type vcf \
+  --samplesheet test_data/wgs_wes/samplesheet_vcf.csv \
+  --reference_fasta test_data/reference/mini.fa \
+  --mode wgs \
+  --chroms 22 \
+  --run_variant_qc true \
+  --run_sample_qc false \
+  --run_final_report true \
+  --outdir results/test_vcf_variant_only \
+  -profile standard
+```
+
+Quick SNP-array smoke test:
+
+```bash
+cd test_data/snp_array
+bash make_plink_binary.sh
+cd ../..
+
+nextflow run snp_array_qc/main.nf \
+  --bfile test_data/snp_array/toy \
+  --run_variant_qc true \
+  --run_sample_qc false \
+  --run_final_report true \
+  --outdir results/test_snp_variant_only \
+  -profile standard
+```
+
+See [test_data/README.md](test_data/README.md) for notes and additional smoke-test commands.
 
 ## Execution Profiles
 

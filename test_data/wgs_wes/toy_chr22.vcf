@@ -1,0 +1,16 @@
+##fileformat=VCFv4.2
+##contig=<ID=22,length=100>
+##FILTER=<ID=PASS,Description="All filters passed">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Read depth">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype quality">
+##INFO=<ID=QD,Number=1,Type=Float,Description="Quality by depth">
+##INFO=<ID=FS,Number=1,Type=Float,Description="Fisher strand bias">
+##INFO=<ID=MQ,Number=1,Type=Float,Description="Mapping quality">
+##INFO=<ID=MQRankSum,Number=1,Type=Float,Description="MQ rank sum">
+##INFO=<ID=ReadPosRankSum,Number=1,Type=Float,Description="Read position rank sum">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	S1	S2	S3
+22	10	rsTest1	A	G	60	PASS	QD=10.0;FS=2.0;MQ=60.0;MQRankSum=0.0;ReadPosRankSum=0.0	GT:DP:GQ	0/0:20:99	0/1:18:80	1/1:22:90
+22	20	rsTest2	C	T	50	PASS	QD=8.0;FS=3.0;MQ=58.0;MQRankSum=0.0;ReadPosRankSum=0.0	GT:DP:GQ	0/1:15:70	0/0:19:99	0/1:17:75
+22	30	rsTest3	G	A	45	PASS	QD=6.0;FS=4.0;MQ=55.0;MQRankSum=0.0;ReadPosRankSum=0.0	GT:DP:GQ	0/0:30:99	0/1:25:85	0/0:28:99
+22	40	rsTest4	T	C	70	PASS	QD=12.0;FS=1.0;MQ=60.0;MQRankSum=0.0;ReadPosRankSum=0.0	GT:DP:GQ	0/1:21:88	0/1:20:82	0/0:19:91
