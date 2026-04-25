@@ -64,7 +64,7 @@ import re
 def grep_flagstat(key, text):
     for line in text.split("\n"):
         if key in line:
-            m = re.search(r"([\d]+)", line)
+            m = re.search(r"([0-9]+)", line)
             return m.group(1) if m else "NA"
     return "NA"
 
@@ -80,7 +80,7 @@ duplicates    = grep_flagstat("duplicates", flag_text)
 map_rate = "NA"
 for line in flag_text.split("\n"):
     if "mapped (" in line:
-        m = re.search(r"\(([\d.]+)%\)", line)
+        m = re.search(r"[(]([0-9.]+)%[)]", line)
         if m:
             map_rate = m.group(1)
         break

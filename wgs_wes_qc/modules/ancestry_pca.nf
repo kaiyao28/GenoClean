@@ -61,6 +61,7 @@ process ANCESTRY_PCA {
 
     script:
     def has_ref = !(reference_panel instanceof List) && (reference_panel as String).length() > 0
+    def ref_used = has_ref ? 'yes' : 'no'
     """
     n_variants=\$(bcftools view --no-header ${vcf} | wc -l)
     echo "ANCESTRY PCA: received \${n_variants} pre-filtered variants from PCA_VARIANT_SELECTION"
@@ -196,7 +197,7 @@ with open("ancestry_pca_wgs_summary.txt", "w") as out:
     if pve:
         out.write(f"pc1_variance_pct={pve[0]:.2f}\n")
         out.write(f"pc2_variance_pct={pve[1]:.2f}\n" if len(pve) > 1 else "")
-    out.write(f"reference_panel_used=${'yes' if ${has_ref ? 'True' : 'False'} else 'no'}\n")
+    out.write("reference_panel_used=${ref_used}\n")
 
 print(f"Ancestry PCA WGS/WES: {len(outliers)} outliers flagged beyond ±{sd_thr} SD "
       f"({len(data)} samples, {n_pcs_computed} PCs)")

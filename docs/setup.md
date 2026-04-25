@@ -140,21 +140,13 @@ git clone https://github.com/kaiyao28/GeneticQC.git
 cd GeneticQC
 ```
 
-Run the small VCF smoke test:
+Run both bundled smoke tests:
 
 ```bash
-nextflow run wgs_wes_qc/main.nf \
-  --input_type vcf \
-  --samplesheet test_data/wgs_wes/samplesheet_vcf.csv \
-  --reference_fasta test_data/reference/mini.fa \
-  --mode wgs \
-  --chroms 22 \
-  --run_variant_qc true \
-  --run_sample_qc false \
-  --run_final_report true \
-  --outdir results/test_vcf_variant_only \
-  -profile docker
+bash test_data/run_smoke_tests.sh
 ```
+
+This runs one WGS/WES VCF smoke test and one SNP-array smoke test using the example data in `test_data/`.
 
 ## Linux or macOS Setup
 
@@ -192,20 +184,10 @@ Pull the Docker image:
 docker pull ghcr.io/kaiyao28/genetic-qc:1.0
 ```
 
-Run the smoke test:
+Run both bundled smoke tests:
 
 ```bash
-nextflow run wgs_wes_qc/main.nf \
-  --input_type vcf \
-  --samplesheet test_data/wgs_wes/samplesheet_vcf.csv \
-  --reference_fasta test_data/reference/mini.fa \
-  --mode wgs \
-  --chroms 22 \
-  --run_variant_qc true \
-  --run_sample_qc false \
-  --run_final_report true \
-  --outdir results/test_vcf_variant_only \
-  -profile docker
+bash test_data/run_smoke_tests.sh
 ```
 
 ## HPC Cluster Setup
@@ -365,4 +347,3 @@ The GHCR package is private or the image has not been published. Maintainers sho
 ### Cluster does not allow Docker
 
 Use Apptainer/Singularity and the `singularity` profile instead of Docker.
-

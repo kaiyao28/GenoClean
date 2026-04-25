@@ -204,6 +204,14 @@ shared profiles/defaults -> nextflow.config
 
 Small toy files for smoke testing are available in [test_data/](test_data/). These examples are intentionally tiny and are meant to check pipeline wiring, not biological validity.
 
+Recommended all-in-one check after cloning:
+
+```bash
+bash test_data/run_smoke_tests.sh
+```
+
+This checks Docker and Nextflow, pulls `ghcr.io/kaiyao28/genetic-qc:1.0`, prepares the SNP-array example data inside Docker, then runs both example workflows in variant-only report mode.
+
 Quick VCF smoke test:
 
 ```bash
@@ -214,6 +222,7 @@ nextflow run wgs_wes_qc/main.nf \
   --mode wgs \
   --chroms 22 \
   --run_variant_qc true \
+  --run_variant_filtering false \
   --run_sample_qc false \
   --run_final_report true \
   --outdir results/test_vcf_variant_only \
@@ -223,9 +232,10 @@ nextflow run wgs_wes_qc/main.nf \
 Quick SNP-array smoke test:
 
 ```bash
-cd test_data/snp_array
-bash make_plink_binary.sh
-cd ../..
+docker run --rm \
+  -v "$PWD/test_data/snp_array:/data" \
+  ghcr.io/kaiyao28/genetic-qc:1.0 \
+  bash -lc "cd /data && plink --file toy --make-bed --out toy --allow-no-sex"
 
 nextflow run snp_array_qc/main.nf \
   --bfile test_data/snp_array/toy \
