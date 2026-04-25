@@ -14,9 +14,10 @@ process MERGE_CHROMOSOMES {
 
     input:
     path plink_files
+    val  meta
 
     output:
-    tuple val(["id": "merged"]), path("merged.bed"), path("merged.bim"), path("merged.fam"), emit: plink
+    tuple val(meta), path("merged.bed"), path("merged.bim"), path("merged.fam"), emit: plink
     path "merge_chromosomes_summary.txt", emit: summary
 
     script:
