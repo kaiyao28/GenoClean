@@ -192,6 +192,32 @@ nextflow run snp_array_qc/main.nf -params-file assets/example_params.yml
 
 See [assets/example_params.yml](assets/example_params.yml) for an annotated example.
 
+## Changing Defaults
+
+Use command-line flags for one-off changes:
+
+```bash
+nextflow run snp_array_qc/main.nf --bfile data/raw/genotypes --maf 0.05
+```
+
+Use workflow-specific config files for project defaults:
+
+```text
+conf/snp_array_qc.config
+conf/wgs_wes_qc.config
+```
+
+Use the root `nextflow.config` for shared defaults and execution profiles such as Docker, Singularity, Conda, SLURM, LSF, and AWS Batch.
+
+In general:
+
+```text
+temporary run change     -> command-line flags
+SNP-array defaults       -> conf/snp_array_qc.config
+WGS/WES defaults         -> conf/wgs_wes_qc.config
+shared profiles/defaults -> nextflow.config
+```
+
 ## Test Data
 
 Small toy files for smoke testing are available in [test_data/](test_data/). These examples are intentionally tiny and are meant to check pipeline wiring, not biological validity.
