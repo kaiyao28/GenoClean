@@ -19,7 +19,7 @@ nextflow run wgs_wes_qc/main.nf \
   --run_sample_qc false \
   --run_final_report true \
   --outdir results/test_vcf_variant_only \
-  -profile standard
+  -profile docker
 ```
 
 This should exercise:
@@ -44,7 +44,7 @@ nextflow run wgs_wes_qc/main.nf \
   --run_ancestry_pca_wgs false \
   --run_final_report true \
   --outdir results/test_vcf_sample_smoke \
-  -profile standard
+  -profile docker
 ```
 
 ## SNP Array Smoke Test
@@ -66,7 +66,7 @@ nextflow run snp_array_qc/main.nf \
   --run_sample_qc false \
   --run_final_report true \
   --outdir results/test_snp_variant_only \
-  -profile standard
+  -profile docker
 ```
 
 The conversion step requires `plink` on `PATH`.

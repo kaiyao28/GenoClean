@@ -17,7 +17,7 @@ set -uo pipefail
 
 MODE="${1:-path}"
 LOG="test_results.log"
-IMAGE="genetic-qc:1.0"
+IMAGE="${GENETIC_QC_DOCKER_IMAGE:-ghcr.io/kaiyao28/genetic-qc:1.0}"
 SIF="containers/genetic-qc.sif"
 
 # ── colours ───────────────────────────────────────────────────────────────────

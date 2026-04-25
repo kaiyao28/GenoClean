@@ -20,23 +20,60 @@ git clone https://github.com/kaiyao28/GeneticQC.git
 cd GeneticQC
 ```
 
-Install one execution environment:
+Recommended setup: use the Docker image. This keeps all bioinformatics packages outside your local machine and makes runs more reproducible.
 
 ```bash
-bash setup.sh
-bash setup.sh docker
-bash setup.sh singularity
+docker pull ghcr.io/kaiyao28/genetic-qc:1.0
 ```
 
-Then test the tools:
+If the image has not been published yet, build it locally:
 
 ```bash
-bash test_env.sh
+docker build -t genetic-qc:1.0 -f containers/Dockerfile .
+```
+
+Then run with the Docker profile. For the published image, no extra flag is needed:
+
+```bash
+nextflow run wgs_wes_qc/main.nf ... -profile docker
+```
+
+For a locally built image, add:
+
+```bash
+--docker_image genetic-qc:1.0
+```
+
+Test the Docker image:
+
+```bash
 bash test_env.sh docker
-bash test_env.sh singularity
 ```
 
-Each tool is reported as `PASS`, `WARN`, or `FAIL`. The full log is written to `test_results.log`.
+To test a locally built image instead of the registry image:
+
+```bash
+GENETIC_QC_DOCKER_IMAGE=genetic-qc:1.0 bash test_env.sh docker
+```
+
+On Windows PowerShell without WSL or Git Bash, use direct `docker run` checks instead of `test_env.sh`.
+
+On Windows PowerShell, `.sh` files do not run natively unless you use WSL or Git Bash. You can test the image directly from PowerShell:
+
+```powershell
+docker run --rm ghcr.io/kaiyao28/genetic-qc:1.0 plink --version
+docker run --rm ghcr.io/kaiyao28/genetic-qc:1.0 bcftools --version
+docker run --rm ghcr.io/kaiyao28/genetic-qc:1.0 gatk --version
+```
+
+For a local image in PowerShell:
+
+```powershell
+docker build -t genetic-qc:1.0 -f containers/Dockerfile .
+docker run --rm genetic-qc:1.0 plink --version
+```
+
+Each tool check is reported as `PASS`, `WARN`, or `FAIL` when using `test_env.sh`. The full log is written to `test_results.log`.
 
 Example output:
 
@@ -55,9 +92,15 @@ Example output:
 Results: 13 PASS  1 WARN  0 FAIL
 ```
 
-If any required tool reports `FAIL`, re-run `setup.sh`, inspect the error, or check [containers/environment.yml](containers/environment.yml).
+If a required tool reports `FAIL`, rebuild or pull the Docker image again.
 
-For HPC use, after `bash setup.sh singularity`, copy `containers/genetic-qc.sif` to shared cluster storage and update `conf/singularity.config`.
+For HPC use, convert the Docker image to Singularity/Apptainer format and update `conf/singularity.config`:
+
+```bash
+apptainer build containers/genetic-qc.sif docker://ghcr.io/kaiyao28/genetic-qc:1.0
+```
+
+Conda/Mamba setup is still available for development through [containers/environment.yml](containers/environment.yml), but Docker is the recommended path for users.
 
 ## Workflow Design
 
@@ -242,7 +285,7 @@ nextflow run wgs_wes_qc/main.nf \
   --run_sample_qc false \
   --run_final_report true \
   --outdir results/test_vcf_variant_only \
-  -profile standard
+  -profile docker
 ```
 
 Quick SNP-array smoke test:
@@ -258,7 +301,7 @@ nextflow run snp_array_qc/main.nf \
   --run_sample_qc false \
   --run_final_report true \
   --outdir results/test_snp_variant_only \
-  -profile standard
+  -profile docker
 ```
 
 See [test_data/README.md](test_data/README.md) for notes and additional smoke-test commands.
