@@ -149,7 +149,7 @@ workflow {
             def meta = [id: row.sample, input_type: params.input_type, mode: params.mode]
             [meta, file(row.file1 ?: row.vcf)]
         }
-        ch_input_check = ch_vcf.map { meta, vcf -> [meta, vcf, vcf] }
+        ch_input_check = ch_vcf.map { meta, vcf -> [meta, vcf, []] }
     }
 
     ch_qc_summaries = Channel.empty()
