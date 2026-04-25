@@ -66,6 +66,15 @@ docker run --rm ghcr.io/kaiyao28/genetic-qc:1.0 bcftools --version
 docker run --rm ghcr.io/kaiyao28/genetic-qc:1.0 gatk --version
 ```
 
+If `docker pull` fails with a message about `dockerDesktopLinuxEngine`, Docker Desktop is not running or the Linux engine is not available. Open Docker Desktop, wait until it says the engine is running, then check:
+
+```powershell
+docker version
+docker info
+```
+
+If Docker Desktop is not installed, install it first and enable the WSL2/Linux backend.
+
 For a local image in PowerShell:
 
 ```powershell
@@ -93,6 +102,8 @@ Results: 13 PASS  1 WARN  0 FAIL
 ```
 
 If a required tool reports `FAIL`, rebuild or pull the Docker image again.
+
+Maintainers: the Docker image is published by `.github/workflows/docker-publish.yml`. Push to `main` or run the workflow manually in GitHub Actions. If `docker pull ghcr.io/kaiyao28/genetic-qc:1.0` returns `denied`, open the package settings on GitHub and set the container package visibility to public.
 
 For HPC use, convert the Docker image to Singularity/Apptainer format and update `conf/singularity.config`:
 
