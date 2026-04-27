@@ -3,6 +3,7 @@
 work/
 results/
 test_results.log
+andrej-karpathy-skills
 
 # Local environment and editor files
 .env
@@ -10,6 +11,7 @@ test_results.log
 __pycache__/
 .DS_Store
 Thumbs.db
+.gitignore
 
 # Large local container/build artifacts
 containers/*.sif
