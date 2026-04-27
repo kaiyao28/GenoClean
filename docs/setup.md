@@ -140,13 +140,15 @@ git clone https://github.com/kaiyao28/GeneticQC.git
 cd GeneticQC
 ```
 
-Run both bundled smoke tests:
+Run the smoke tests:
 
 ```bash
-bash test_data/run_smoke_tests.sh
+bash test_data/run_smoke_tests.sh                    # both pipelines
+bash test_data/run_smoke_tests.sh --test snp_array   # SNP array only
+bash test_data/run_smoke_tests.sh --test wgs_wes     # WGS/WES only
 ```
 
-This runs one WGS/WES VCF smoke test and one SNP-array smoke test using the example data in `test_data/`.
+Each test runs the selected workflow on synthetic toy data in `test_data/` and writes an HTML report to `results/`.
 
 ## Linux or macOS Setup
 
@@ -184,10 +186,12 @@ Pull the Docker image:
 docker pull ghcr.io/kaiyao28/genetic-qc:1.0
 ```
 
-Run both bundled smoke tests:
+Run the smoke tests:
 
 ```bash
-bash test_data/run_smoke_tests.sh
+bash test_data/run_smoke_tests.sh                    # both pipelines
+bash test_data/run_smoke_tests.sh --test snp_array   # SNP array only
+bash test_data/run_smoke_tests.sh --test wgs_wes     # WGS/WES only
 ```
 
 ## HPC Cluster Setup
@@ -419,7 +423,9 @@ Tools on `PATH` when Nextflow starts are inherited by compute node processes.
 
 ## Testing The Environment
 
-If you are using Bash:
+### Step 1 — Verify tools
+
+Docker:
 
 ```bash
 bash test_env.sh docker
@@ -431,10 +437,18 @@ For a different Docker image:
 GENETIC_QC_DOCKER_IMAGE=my-image:tag bash test_env.sh docker
 ```
 
-For Singularity/Apptainer:
+Singularity/Apptainer:
 
 ```bash
 bash test_env.sh singularity
+```
+
+Manual install (`manual_paths` profile):
+
+```bash
+export PATH=$GENETIC_QC_TOOL_DIR/bin:$PATH
+plink --version && plink2 --version && samtools --version | head -1
+bcftools --version | head -1 && gatk --version && mosdepth --version
 ```
 
 On Windows PowerShell without WSL/Git Bash, test the Docker image directly:
@@ -444,6 +458,35 @@ docker run --rm ghcr.io/kaiyao28/genetic-qc:1.0 plink --version
 docker run --rm ghcr.io/kaiyao28/genetic-qc:1.0 bcftools --version
 docker run --rm ghcr.io/kaiyao28/genetic-qc:1.0 gatk --version
 ```
+
+### Step 2 — Generate test data and run smoke tests
+
+The synthetic test data is tracked in the repository. If you need to regenerate it
+(e.g. after resetting the repo or changing the data):
+
+```bash
+python3 test_data/generate_test_data.py
+rm -f test_data/snp_array/toy.bed test_data/snp_array/toy.bim test_data/snp_array/toy.fam
+```
+
+Run both pipelines:
+
+```bash
+bash test_data/run_smoke_tests.sh                          # Docker (default)
+bash test_data/run_smoke_tests.sh --profile singularity    # Singularity
+bash test_data/run_smoke_tests.sh --profile manual_paths   # no container
+```
+
+Run one pipeline at a time:
+
+```bash
+bash test_data/run_smoke_tests.sh --profile manual_paths --test snp_array
+bash test_data/run_smoke_tests.sh --profile manual_paths --test wgs_wes
+```
+
+The test data is designed so QC filters have something to remove:
+SNP array has monomorphic variants (fail MAF) and high-missingness variants (fail callrate).
+WGS/WES VCF has variants with failing site-level flags and samples with low genotype quality.
 
 ## Common Problems
 
@@ -491,6 +534,9 @@ Then re-run:
 
 ```bash
 bash test_data/run_smoke_tests.sh
+# or run one pipeline at a time:
+bash test_data/run_smoke_tests.sh --test snp_array
+bash test_data/run_smoke_tests.sh --test wgs_wes
 ```
 
 If it still fails, increase Docker Desktop disk space:

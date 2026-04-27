@@ -107,19 +107,34 @@ fi
 # ── 3. PLINK 2 ────────────────────────────────────────────────────────────────
 # Pre-compiled static Linux x86_64 binary.
 # Source: https://www.cog-genomics.org/plink/2.0/
-# Note: URL below uses the AVX2 build. If your CPU lacks AVX2, use the
-# non-AVX2 build (check: grep -c avx2 /proc/cpuinfo)
+# The S3 URL path changes with each alpha release. We try known paths in order
+# and fall back to a manual download message if all fail.
 if [[ -f "$TOOL_DIR/bin/plink2" ]]; then
     ok "PLINK 2 already present"
 else
     echo "Downloading PLINK 2..."
     mkdir -p "$TOOL_DIR/src/plink2"
-    fetch "https://s3.amazonaws.com/plink2-assets/alpha6/plink2_linux_x86_64_latest.zip" \
-          "$TOOL_DIR/src/plink2/plink2.zip"
-    unzip -q "$TOOL_DIR/src/plink2/plink2.zip" -d "$TOOL_DIR/src/plink2/"
-    cp "$TOOL_DIR/src/plink2/plink2" "$TOOL_DIR/bin/plink2"
-    chmod +x "$TOOL_DIR/bin/plink2"
-    ok "PLINK 2: $TOOL_DIR/bin/plink2"
+    PLINK2_DOWNLOADED=false
+    for PLINK2_PREFIX in alpha6 alpha5 alpha3; do
+        PLINK2_URL="https://s3.amazonaws.com/plink2-assets/${PLINK2_PREFIX}/plink2_linux_x86_64_latest.zip"
+        if fetch "$PLINK2_URL" "$TOOL_DIR/src/plink2/plink2.zip" 2>/dev/null; then
+            if unzip -q "$TOOL_DIR/src/plink2/plink2.zip" -d "$TOOL_DIR/src/plink2/" 2>/dev/null && \
+               [[ -f "$TOOL_DIR/src/plink2/plink2" ]]; then
+                cp "$TOOL_DIR/src/plink2/plink2" "$TOOL_DIR/bin/plink2"
+                chmod +x "$TOOL_DIR/bin/plink2"
+                ok "PLINK 2: $TOOL_DIR/bin/plink2 (via ${PLINK2_PREFIX})"
+                PLINK2_DOWNLOADED=true
+                break
+            fi
+        fi
+        rm -f "$TOOL_DIR/src/plink2/plink2.zip"
+    done
+    if [[ "$PLINK2_DOWNLOADED" == "false" ]]; then
+        warn "PLINK 2 automatic download failed. Download manually:"
+        warn "  https://www.cog-genomics.org/plink/2.0/"
+        warn "  Copy the plink2 binary to: $TOOL_DIR/bin/plink2"
+        warn "  (PLINK 2 is only used by the WGS/WES ancestry PCA step)"
+    fi
 fi
 
 # ── 4. htslib / samtools / bcftools ───────────────────────────────────────────

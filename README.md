@@ -20,10 +20,14 @@ At the end you get a self-contained HTML report with the full attrition table, a
 ```bash
 git clone https://github.com/kaiyao28/GeneticQC.git
 cd GeneticQC
-bash test_data/run_smoke_tests.sh
+bash test_data/run_smoke_tests.sh              # both pipelines
+bash test_data/run_smoke_tests.sh --test snp_array   # SNP array only
+bash test_data/run_smoke_tests.sh --test wgs_wes     # WGS/WES only
 ```
 
-The smoke test script checks Docker and Nextflow, pulls the image, and runs both workflows on small toy data. Both tests should complete in a few minutes and write HTML reports to `results/`.
+The smoke test script checks Docker and Nextflow, pulls the image, and runs the selected workflow(s) on synthetic toy data in `test_data/`. Both tests should complete in a few minutes and write HTML reports to `results/`.
+
+For HPC without Docker or Singularity, use `--profile manual_paths` instead (see [Setup Guide](docs/setup.md)).
 
 For platform-specific setup (Windows/WSL, Linux, macOS, HPC), see [Setup Guide](docs/setup.md).
 
