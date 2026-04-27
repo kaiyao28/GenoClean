@@ -118,11 +118,15 @@ Followed by thresholds and run settings. The report records which phases ran, wh
 ## Execution Profiles
 
 ```bash
--profile docker        # local machine
--profile singularity   # HPC (Apptainer/Singularity)
--profile slurm,singularity  # HPC with SLURM scheduler
--profile conda         # no container daemon
+-profile docker                  # local machine
+-profile singularity             # HPC (Apptainer/Singularity)
+-profile slurm,singularity       # HPC with SLURM scheduler
+-profile conda                   # no container daemon
+-profile manual_paths            # HPC without any container or package manager
+-profile slurm,manual_paths      # SLURM + manually installed tools
 ```
+
+If neither Docker nor Singularity is available on the cluster, use `manual_paths`. Run `bash setup_hpc_manual.sh` first to download all tools to your home directory. See [Setup Guide](docs/setup.md) for details.
 
 ---
 

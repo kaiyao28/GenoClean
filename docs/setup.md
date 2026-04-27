@@ -283,6 +283,140 @@ Which storage path is shared across compute nodes?
 Are internet pulls from compute/login nodes allowed?
 ```
 
+## HPC Without Containers (Manual Tool Installation)
+
+Use this path when the cluster has no Docker, no Apptainer/Singularity, and no
+conda/mamba — but you can download files on the login node.
+
+### Requirements
+
+You need these already available (most HPC clusters have them):
+
+```text
+Java 17+    — for Nextflow, GATK, Picard, FastQC
+gcc + make  — to compile samtools, bcftools, htslib from source
+wget or curl
+```
+
+Check before starting:
+
+```bash
+java -version
+gcc --version
+module avail java    # if java is missing, load it first
+module avail gcc     # if gcc is missing, load it first
+```
+
+### Step 1 — Download all tools
+
+Run the setup script on the login node. It downloads pre-compiled binaries
+where possible and compiles from source otherwise. No root access needed.
+
+```bash
+# Default: installs to ~/genetic_qc_tools
+bash setup_hpc_manual.sh
+
+# Custom location (recommended for shared clusters):
+bash setup_hpc_manual.sh --dir /shared/software/genetic_qc_tools
+
+# Skip samtools/bcftools compilation (if they are already available via module load):
+bash setup_hpc_manual.sh --skip-compile
+```
+
+The script downloads: Nextflow, PLINK 1.9, PLINK 2, samtools, bcftools, htslib,
+GATK 4, Picard, FastQC, mosdepth, and VerifyBamID2. All executables are placed
+under `$TOOL_DIR/bin/`.
+
+### Step 2 — Point the pipeline at those tools
+
+Set an environment variable so Nextflow knows where the tools live:
+
+```bash
+export GENETIC_QC_TOOL_DIR=~/genetic_qc_tools   # or your custom path
+```
+
+Add this to `~/.bashrc` so it persists across sessions:
+
+```bash
+echo 'export GENETIC_QC_TOOL_DIR=~/genetic_qc_tools' >> ~/.bashrc
+```
+
+### Step 3 — Run the pipeline with the manual_paths profile
+
+```bash
+# Local execution
+nextflow run snp_array_qc/main.nf \
+  --bfile data/raw/genotypes \
+  --outdir results/snp_array_qc \
+  -profile manual_paths
+
+# SLURM cluster
+nextflow run wgs_wes_qc/main.nf \
+  --input_type vcf \
+  --samplesheet samplesheet.csv \
+  --reference_fasta /shared/reference/GRCh38.fa \
+  --mode wgs \
+  --outdir results/wgs_wes_qc \
+  -profile slurm,manual_paths \
+  -resume
+
+# LSF cluster
+nextflow run wgs_wes_qc/main.nf \
+  --input_type bam \
+  --samplesheet samplesheet.csv \
+  --reference_fasta /shared/reference/GRCh38.fa \
+  --mode wes \
+  --target_intervals /shared/reference/exome_targets.bed \
+  --outdir results/wgs_wes_qc \
+  -profile lsf,manual_paths \
+  -resume
+```
+
+Alternatively, pass `--tool_dir` directly without setting the environment variable:
+
+```bash
+nextflow run snp_array_qc/main.nf \
+  --bfile data/raw/genotypes \
+  --tool_dir /shared/software/genetic_qc_tools \
+  -profile slurm,manual_paths
+```
+
+### Troubleshooting manual installs
+
+**samtools/bcftools compilation fails**
+
+Load gcc first, then re-run the script:
+
+```bash
+module load gcc
+bash setup_hpc_manual.sh
+```
+
+Or ask the cluster sysadmin to load samtools and bcftools as modules, then use
+`--skip-compile` and add the module to your job submission script:
+
+```bash
+module load samtools bcftools
+bash setup_hpc_manual.sh --skip-compile
+```
+
+**VerifyBamID2 download fails**
+
+This is non-fatal. The contamination module falls back to GATK
+CalculateContamination automatically. You will see a warning in the log.
+
+**A specific tool is already installed as a cluster module**
+
+You can load it in your shell before running Nextflow and it will be available:
+
+```bash
+module load gatk samtools
+export GENETIC_QC_TOOL_DIR=~/genetic_qc_tools
+nextflow run wgs_wes_qc/main.nf -profile slurm,manual_paths ...
+```
+
+Tools on `PATH` when Nextflow starts are inherited by compute node processes.
+
 ## Testing The Environment
 
 If you are using Bash:
