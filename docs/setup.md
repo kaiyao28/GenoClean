@@ -263,7 +263,23 @@ process {
 }
 ```
 
-Run with the cluster profile, for example SLURM plus Singularity:
+Run with the cluster profile. SNP array example:
+
+```bash
+# Step 1 — inspect (always run this first)
+nextflow run snp_array_qc/inspect.nf \
+  --bfile /shared/data/genotypes \
+  --outdir /shared/results/inspect \
+  -profile slurm,singularity
+
+# Step 2 — run QC using the generated template
+nextflow run snp_array_qc/main.nf \
+  -params-file /shared/results/inspect/params_template.yaml \
+  -profile slurm,singularity \
+  -resume
+```
+
+WGS/WES example:
 
 ```bash
 nextflow run wgs_wes_qc/main.nf \

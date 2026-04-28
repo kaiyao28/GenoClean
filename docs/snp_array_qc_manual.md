@@ -11,25 +11,212 @@ reference for GWAS quality control procedures.
 
 ---
 
-## Quick start
+## Before you start
+
+### Checklist
+
+- [ ] **Nextflow installed** — `nextflow -version` should show ≥ 22.10. See [Setup Guide](setup.md).
+- [ ] **Container available** — `singularity --version` on HPC, or `docker version` on a laptop.
+- [ ] **Data in PLINK binary format** — three files with the same prefix: `.bed`, `.bim`, `.fam`.
+- [ ] **Chromosome coding is consistent** — chromosomes must be numbered `1 2 ... 22 23`, not `chr1 chr2 ... chrX`. Check with `awk '{print $1}' genotypes.bim | sort -u`.
+- [ ] **FAM file column 6 is correct** — this controls case-control mode (see below).
+
+### Converting to PLINK binary format
+
+If your data is in VCF format:
+```bash
+plink2 --vcf genotypes.vcf.gz --make-bed --out genotypes
+```
+
+If you have PLINK text format (`.ped`/`.map`):
+```bash
+plink --file genotypes --make-bed --out genotypes
+```
+
+### FAM file column 6 (phenotype coding)
+
+The FAM file has six columns: `FID IID PID MID SEX PHENO`. Column 6 (PHENO) tells the pipeline whether this is a case-control study:
+
+```
+FAM001 S001 0 0 1 1   ← control (1)
+FAM001 S002 0 0 2 2   ← case (2)
+FAM001 S003 0 0 1 0   ← missing phenotype (0 or -9)
+```
+
+- `1` = control, `2` = case → **case-control mode**: HWE tested in controls only; differential missingness test applied
+- `0` or `-9` = missing → **cohort mode**: HWE tested in all samples; differential missingness test not applied
+
+If your FAM file uses `0`/`1` coding instead of `1`/`2`, the pipeline will not detect case-control status. Recode before running:
+```bash
+awk 'BEGIN{OFS="\t"} {if($6==1) $6=2; else if($6==0) $6=1; print}' genotypes.fam > genotypes_recoded.fam
+```
+
+---
+
+## Running on a cluster
+
+### Choose your profile
+
+| Where | Profile |
+|-------|---------|
+| Laptop with Docker | `-profile docker` |
+| HPC with Apptainer/Singularity + SLURM | `-profile slurm,singularity` |
+| HPC with Apptainer/Singularity + LSF | `-profile lsf,singularity` |
+| HPC with no container (tools installed manually) | `-profile slurm,manual_paths` |
+
+On HPC, always combine the **scheduler profile** (`slurm`, `lsf`) with the **container profile** (`singularity`). Using `-profile singularity` alone runs everything on the login node, which is slow and may get your session terminated.
+
+### Use absolute paths
+
+On clusters, compute nodes may have different working directories. Use absolute paths for `--bfile` and `--outdir`:
+
+```bash
+nextflow run snp_array_qc/inspect.nf \
+  --bfile /shared/data/project/genotypes \
+  --outdir /shared/results/inspect \
+  -profile slurm,singularity
+```
+
+Relative paths (`data/genotypes`) work on a laptop but can fail silently on cluster compute nodes.
+
+### Submit Nextflow itself as a job
+
+On many clusters, running long commands on the login node is not allowed. Wrap the `nextflow run` command in a job submission:
+
+```bash
+# SLURM
+sbatch --mem=4G --time=24:00:00 --wrap="
+  nextflow run snp_array_qc/main.nf \
+    -params-file /shared/results/inspect/params_template.yaml \
+    -profile slurm,singularity \
+    -resume
+"
+```
+
+The Nextflow head process is lightweight — it only coordinates. The actual PLINK and R work runs on separate compute nodes submitted automatically.
+
+### Resume after a failure
+
+Add `-resume` to any command. Nextflow caches completed steps and skips them on re-run:
+
+```bash
+nextflow run snp_array_qc/main.nf \
+  -params-file results/inspect/params_template.yaml \
+  -profile slurm,singularity \
+  -resume
+```
+
+### Work directory
+
+Nextflow writes intermediate files to `work/` in the directory where you run the command. On HPC, redirect this to scratch storage to avoid filling your home quota:
+
+```bash
+nextflow run ... -work-dir /scratch/$USER/nf-work
+```
+
+---
+
+## Recommended workflow
+
+**Always run `inspect.nf` before `main.nf`.** QC thresholds are not universal — a missingness
+cutoff that is appropriate for a well-genotyped clinical array can be far too lenient or too
+strict for a different platform, batch, or population. Running `inspect.nf` first takes only a
+few minutes and gives you the full picture of your data before any sample or variant is removed.
+
+```
+inspect.nf  →  review  →  edit params_template.yaml  →  main.nf
+```
+
+Running `main.nf` directly with defaults is supported and works for most datasets, but it is
+best reserved for cases where you already know your data quality profile.
+
+### Step 1 — Inspect (no filtering)
+
+```bash
+nextflow run snp_array_qc/inspect.nf \
+  --bfile data/raw/genotypes \
+  --outdir results/inspect \
+  -profile singularity
+```
+
+This takes roughly the same time as a single PLINK run. Three processes execute in parallel:
+
+| Process | What it computes |
+|---------|-----------------|
+| Stats | Per-sample missingness, heterozygosity, sex check F-statistic; per-variant missingness, MAF, HWE p-values |
+| Relatedness | Pairwise IBD scan; pair counts at 0.125 / 0.1875 / 0.25 / 0.5 / 0.9 thresholds |
+| PCA | 10-PC PCA; variance explained per PC |
+
+**Outputs in `results/inspect/`:**
+
+| File | Description |
+|------|-------------|
+| `inspect_report.html` | Self-contained HTML — all distribution plots with default thresholds marked, plus observed stats table. Open this first. |
+| `params_template.yaml` | Every parameter pre-filled at its default, annotated with observed statistics from your specific dataset |
+| `qc_plots/*.png` | Individual plot files for each metric |
+
+### Step 2 — Review
+
+Open `inspect_report.html` in a browser. For each metric, the plot shows where the default
+threshold falls relative to the actual distribution. Ask:
+
+- **Sample / variant missingness:** Does the default (0.02) sit above the main body of the
+  distribution? If most samples are below 0.005, tighten to 0.01.
+- **MAF:** Is there a large spike of very rare variants you want to exclude? Or are you doing
+  rare-variant analysis where you want to keep them?
+- **HWE:** How many variants fall below `1e-6`? A handful is normal (genuine association signals
+  or genotyping error). Hundreds may indicate batch problems or population stratification.
+- **Heterozygosity:** Is the distribution roughly bell-shaped? Bimodal distribution suggests
+  mixed ancestry — run PCA first and apply het checks within ancestry groups.
+- **IBD:** Are there more related pairs than expected? If duplicates or MZ twins exist, decide
+  whether to remove one or exclude the pair entirely.
+- **PCA:** Does PC1 vs PC2 show one cloud or several? Multiple clusters indicate population
+  structure — add a `--reference_panel` in main.nf to label ancestry groups.
+
+### Step 3 — Edit the template (if needed)
+
+The `params_template.yaml` is annotated with your observed data:
+
+```yaml
+sample_missingness: 0.02  # observed 95th pct=0.003, max=0.018 — very clean; could tighten to 0.01
+variant_missingness: 0.02  # observed 95th pct=0.015, max=0.089 — default 0.02 looks appropriate
+hwe_p: 1.0e-6              # observed min p (autosomes)=3.2e-12, variants below 1e-6: 125
+relatedness_pi_hat: 0.1875
+# IBD pairs > 0.125 (3rd degree): 18
+# IBD pairs > 0.1875 (default):   12
+# IBD duplicates/MZ twins:        1
+```
+
+Edit any value directly. Then fill in optional inputs if you have them:
+
+```yaml
+reference_panel: data/1000G_hg19   # for ancestry-labelled PCA plot
+hapmap_info: data/hapmap_info.txt   # for HapMap population colours
+ld_regions: data/high_ld_hg19.txt  # recommended — excludes MHC and chr8/17 inversions
+```
+
+### Step 4 — Run QC
+
+```bash
+nextflow run snp_array_qc/main.nf \
+  -params-file results/inspect/params_template.yaml \
+  -profile singularity
+```
+
+If you decide the defaults are fine as-is, you can skip editing and run directly:
+
+```bash
+nextflow run snp_array_qc/main.nf \
+  -params-file results/inspect/params_template.yaml
+```
+
+Or, if you prefer not to use the template at all:
 
 ```bash
 nextflow run snp_array_qc/main.nf \
   --bfile data/raw/genotypes \
   --outdir results/snp_array_qc \
-  -profile singularity
-```
-
-Override a threshold:
-
-```bash
-nextflow run snp_array_qc/main.nf --bfile ... --maf 0.05
-```
-
-Skip a module:
-
-```bash
-nextflow run snp_array_qc/main.nf --bfile ... --run_ancestry_pca false
+  --maf 0.05 --hwe_p 1e-4
 ```
 
 ---
@@ -439,13 +626,69 @@ results/snp_array_qc/
 
 ---
 
+## After QC: next steps
+
+When `main.nf` finishes, the terminal prints the location of every output file. Key outputs:
+
+### Cleaned dataset
+
+`cleaned_data/` contains the QC-passed PLINK binary files, ready for association analysis:
+```
+results/snp_array_qc/cleaned_data/genotypes_sample_qc_pass.bed
+results/snp_array_qc/cleaned_data/genotypes_sample_qc_pass.bim
+results/snp_array_qc/cleaned_data/genotypes_sample_qc_pass.fam
+```
+
+### PCA covariates
+
+`pca_covariates.txt` contains the first N principal components for every QC-passed sample. Pass it directly to your analysis tool:
+
+| Tool | Flag |
+|------|------|
+| PLINK2 | `--covar pca_covariates.txt` |
+| REGENIE | `--covar pca_covariates.txt` |
+| BOLT-LMM | `--covarFile pca_covariates.txt` |
+| PRSice | `--cov pca_covariates.txt` |
+| SAIGE | `covFile = "pca_covariates.txt"` |
+
+The file contains only study-cohort samples (reference panel samples excluded if a reference was merged during PCA). Change the number of PCs written with `--n_pcs_covariates`.
+
+### Review the report
+
+Open `final_report.html` in a browser. It shows the full attrition table (samples and variants removed at each step), all plots, the per-sample QC table, and the exact thresholds used. If any step removed far more samples or variants than expected, re-run `inspect.nf` and adjust the relevant threshold.
+
+### Exclusion lists
+
+`exclusion_lists/all_excluded_samples.txt` and `all_excluded_variants.txt` contain every ID removed. Keep these files — they are needed if you need to apply the same QC to a replication cohort.
+
+### Pheno file format
+
+If you use an external phenotype file (`--pheno`), it must be tab-separated with header:
+
+```
+FID     IID     PHENO
+FAM001  S001    1
+FAM001  S002    2
+FAM001  S003    NA
+```
+
+- Column 1: FID, Column 2: IID, Column 3+: phenotype(s)
+- Case-control: `1` = control, `2` = case, `NA` or `-9` = missing
+- Quantitative: any numeric value; `NA` = missing
+- Additional columns are allowed and passed through to PLINK as covariates
+
+---
+
 ## Common issues
 
 | Symptom | Likely cause | Solution |
 |---------|-------------|---------|
-| Many samples removed at sex check | Missing chrX SNPs | Check `.bim` for chrX variants; chrX HWE threshold is adaptive |
-| Zero variants after HWE | HWE threshold too stringent | Try `--hwe_p 1e-4` |
-| PCA shows two distinct clouds | Population stratification | Add `--reference_panel` and filter by ancestry |
-| Heterozygosity outliers are bimodal | Mixed ancestry dataset | Run ancestry PCA first, then het check within ancestry groups |
+| Many samples removed at sex check | Missing chrX SNPs, or chrX coded as 23 | Run `inspect.nf` and check the sex check F-stat plot; if bimodal at 0 and 1 the data is fine |
+| cc_miss_p filter not applied | FAM col 6 not in 1/2 coding | Check `inspect_stats.tsv` — if n_cc_cases=0 cohort mode is active; recode FAM or pass `--pheno` |
+| Zero variants after HWE | Threshold too stringent | Try `--hwe_p 1e-4`; check `inspect_hwe.png` to see the distribution first |
+| PCA shows two distinct clouds | Population stratification | Add `--reference_panel` and filter by ancestry; inspect PCA plot first |
+| Heterozygosity outliers are bimodal | Mixed ancestry | Run PCA first; apply het filter within ancestry groups separately |
 | Imputation filter removes nothing | SNP ID format mismatch | Check overlap % in `imputation_filter_summary.txt`; align IDs with `plink2 --set-all-var-ids @:#:\$r:\$a` |
-| Imputation filter format not detected | Unexpected header | Check file format; supported: Michigan `.info`, IMPUTE2 `.info`, BEAGLE VCF with `DR2=` |
+| Imputation filter format not detected | Unexpected header | Supported: Michigan `.info`, IMPUTE2 `.info`, BEAGLE VCF with `DR2=` |
+| Pipeline fails on compute nodes but not login node | Relative paths | Use absolute paths for `--bfile` and `--outdir` |
+| `--chroms` format error | Using `chr1-22` instead of `1-22` | Use numeric coding: `1-22`, `22`, `1,2,22`, or `all` |

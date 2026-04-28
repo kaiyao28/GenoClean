@@ -71,13 +71,20 @@ def effectiveScope(chrom_param, declared_scope) {
 // ── Validate required parameters ─────────────────────────────────────────────
 def validateParams() {
     if (!params.bfile) {
-        error "ERROR: --bfile is required. Provide the PLINK binary prefix (without extension)."
+        error "ERROR: --bfile is required. Provide the PLINK binary prefix (without .bed/.bim/.fam extension)."
     }
     if (!file("${params.bfile}.bed").exists()) error "ERROR: ${params.bfile}.bed not found"
     if (!file("${params.bfile}.bim").exists()) error "ERROR: ${params.bfile}.bim not found"
     if (!file("${params.bfile}.fam").exists()) error "ERROR: ${params.bfile}.fam not found"
     if (!["auto","genome_wide","provisional","skip"].contains(params.sample_qc_scope)) {
         error "ERROR: --sample_qc_scope must be one of: auto, genome_wide, provisional, skip"
+    }
+    def chromStr = params.chroms.toString().trim()
+    if (!(chromStr == "all" || chromStr ==~ /^\d+$/ || chromStr ==~ /^\d+-\d+$/ || chromStr ==~ /^[\d,\s]+$/)) {
+        error "ERROR: --chroms format not recognised: '${params.chroms}'. Use: 1-22  |  22  |  1,2,22  |  all"
+    }
+    if (params.n_pcs_covariates > params.n_pcs) {
+        error "ERROR: --n_pcs_covariates (${params.n_pcs_covariates}) cannot exceed --n_pcs (${params.n_pcs})"
     }
 }
 
@@ -355,6 +362,31 @@ workflow {
             Channel.value(scope)
         )
     }
+}
+
+workflow.onComplete {
+    def status  = workflow.success ? "COMPLETE" : "FAILED"
+    def outdir  = params.outdir
+    log.info """
+    ================================================================
+    SNP Array QC ${status}
+    ================================================================
+    Cleaned data     : ${outdir}/cleaned_data/
+    Final report     : ${outdir}/final_report.html
+    PCA covariates   : ${outdir}/pca_covariates.txt
+    Excluded samples : ${outdir}/exclusion_lists/all_excluded_samples.txt
+    Excluded variants: ${outdir}/exclusion_lists/all_excluded_variants.txt
+    ----------------------------------------------------------------
+    Next steps:
+      1. Open final_report.html — review attrition table and plots
+      2. Use cleaned_data/ PLINK files for GWAS or PRS
+      3. Pass pca_covariates.txt as covariates in your analysis tool:
+           PLINK2   --covar pca_covariates.txt
+           REGENIE  --covar pca_covariates.txt
+           BOLT-LMM --covarFile pca_covariates.txt
+           PRSice   --cov pca_covariates.txt
+    ================================================================
+    """.stripIndent()
 }
 
 // ── Inline helper process: apply accumulated sample exclusions ────────────────

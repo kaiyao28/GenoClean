@@ -11,6 +11,8 @@ The pipeline covers the full QC stack for two data types:
 
 Every QC step — variant missingness, HWE, MAF, sex check, heterozygosity, relatedness, ancestry PCA, contamination, coverage, duplicate rate — runs in the right order, with the right tools, all pre-installed in a single Docker image. Each step can be toggled on or off independently, and every threshold has a sensible default that can be overridden from the command line. The pipeline resumes from where it left off if anything fails.
 
+For SNP array data, the recommended workflow has two stages: **inspect first, then filter**. The inspection step (`inspect.nf`) computes all metric distributions on unfiltered data and produces an annotated `params_template.yaml` so you can choose appropriate thresholds for your specific dataset before anything is removed. The QC step (`main.nf`) then applies those thresholds. Both steps are fast; running them sequentially takes little more time than running QC directly, and it eliminates the risk of applying the wrong threshold to your data.
+
 At the end you get a self-contained HTML report with the full attrition table, all metrics, and the exact thresholds used — ready to paste into a methods section.
 
 ---
@@ -35,20 +37,47 @@ For platform-specific setup (Windows/WSL, Linux, macOS, HPC), see [Setup Guide](
 
 ## Example: SNP Array QC
 
+### Step 1 — Inspect your data first
+
 ```bash
-nextflow run snp_array_qc/main.nf \
+nextflow run snp_array_qc/inspect.nf \
   --bfile data/raw/genotypes \
-  --run_variant_qc true \
-  --run_sample_qc true \
-  --chroms 1-22 \
-  --outdir results/snp_array_qc \
+  --outdir results/inspect \
   -profile docker
 ```
 
-Add a 1000 Genomes reference panel for ancestry PCA:
+Open `results/inspect/inspect_report.html` in a browser. It shows the full distribution of every QC metric — missingness, MAF, HWE p-values, heterozygosity, pairwise IBD, and PCA — with the default thresholds marked. The file `results/inspect/params_template.yaml` is pre-filled with all parameters and annotated with the observed statistics from your dataset:
+
+```yaml
+sample_missingness: 0.02  # observed 95th pct=0.003, max=0.018 — very clean; could tighten to 0.01
+hwe_p: 1.0e-6             # observed min p (autosomes)=3.2e-12, variants below 1e-6: 125
+relatedness_pi_hat: 0.1875
+# IBD pairs > 0.1875 (default):  12
+# IBD duplicates/MZ twins:        1
+```
+
+Edit any threshold that looks wrong for your data, then fill in optional inputs:
+
+```yaml
+reference_panel: data/1000G/1000G_hg38   # for ancestry-labelled PCA
+ld_regions: data/high_ld_hg19.txt        # recommended: exclude MHC and inversions
+```
+
+### Step 2 — Run QC
 
 ```bash
-  --reference_panel data/1000G/1000G_hg38
+nextflow run snp_array_qc/main.nf \
+  -params-file results/inspect/params_template.yaml \
+  -profile docker
+```
+
+If you are confident the defaults are appropriate and want to skip the inspection step:
+
+```bash
+nextflow run snp_array_qc/main.nf \
+  --bfile data/raw/genotypes \
+  --outdir results/snp_array_qc \
+  -profile docker
 ```
 
 Full parameter reference: [SNP Array QC Manual](docs/snp_array_qc_manual.md)
@@ -121,16 +150,16 @@ Followed by thresholds and run settings. The report records which phases ran, wh
 
 ## Execution Profiles
 
-```bash
--profile docker                  # local machine
--profile singularity             # HPC (Apptainer/Singularity)
--profile slurm,singularity       # HPC with SLURM scheduler
--profile conda                   # no container daemon
--profile manual_paths            # HPC without any container or package manager
--profile slurm,manual_paths      # SLURM + manually installed tools
-```
+| Profile | When to use |
+|---------|-------------|
+| `docker` | Laptop or workstation with Docker Desktop |
+| `slurm,singularity` | HPC cluster with SLURM + Apptainer/Singularity |
+| `lsf,singularity` | HPC cluster with LSF + Apptainer/Singularity |
+| `slurm,manual_paths` | HPC with no container engine; tools installed manually |
 
-If neither Docker nor Singularity is available on the cluster, use `manual_paths`. Run `bash setup_hpc_manual.sh` first to download all tools to your home directory. See [Setup Guide](docs/setup.md) for details.
+On HPC, always pair the scheduler profile (`slurm`, `lsf`) with the container profile (`singularity`). `-profile singularity` alone runs on the login node. Use absolute paths for `--bfile` and `--outdir` on clusters — relative paths can fail silently on compute nodes.
+
+If no container engine is available, run `bash setup_hpc_manual.sh` first to download all tools. See [Setup Guide](docs/setup.md) for full cluster instructions.
 
 ---
 
