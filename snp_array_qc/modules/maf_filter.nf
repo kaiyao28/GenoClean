@@ -36,6 +36,7 @@ process MAF_FILTER {
     label 'process_medium'
     publishDir "${params.outdir}/cleaned_data", mode: params.publish_dir_mode, pattern: "*.{bed,bim,fam}"
     publishDir "${params.outdir}/qc_tables",    mode: params.publish_dir_mode, pattern: "*.txt"
+    publishDir "${params.outdir}/qc_plots",    mode: params.publish_dir_mode, pattern: "*.png"
 
     input:
     tuple val(meta), path(bed), path(bim), path(fam)
@@ -46,6 +47,7 @@ process MAF_FILTER {
                      path("${meta.id}_maf.fam"), emit: plink
     path "maf_removed_variants.txt",              emit: removed_variants
     path "maf_summary.txt",                       emit: summary
+    path "*.png",                                 optional: true, emit: plots
 
     script:
     def prefix = "${meta.id}"
@@ -75,5 +77,27 @@ n_variants_after=\${n_var_after}
 EOF
 
     echo "MAF filter (MAF >= ${params.maf}): removed \${n_removed} variants"
+
+    # ── MAF distribution plot (computed on pre-filter data) ───────────────────
+    plink \\
+        --bfile ${bed.baseName} \\
+        --freq \\
+        --out maf_dist \\
+        --allow-no-sex
+
+    if command -v Rscript &>/dev/null; then
+        Rscript - << 'RSCRIPT'
+library(ggplot2)
+df <- read.table("maf_dist.frq", header=TRUE)
+p <- ggplot(df, aes(x=MAF)) +
+    geom_histogram(bins=100, fill="steelblue", alpha=0.8) +
+    geom_vline(xintercept=${params.maf}, linetype="dashed", colour="red") +
+    labs(title="Minor allele frequency (MAF) distribution",
+         subtitle="Red line: removal threshold — variants to the left are removed",
+         x="Minor allele frequency", y="Number of variants") +
+    theme_classic()
+ggsave("maf_plot.png", p, width=8, height=5)
+RSCRIPT
+    fi
     """
 }

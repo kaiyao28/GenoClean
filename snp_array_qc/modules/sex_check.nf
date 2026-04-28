@@ -44,6 +44,7 @@ process SEX_CHECK {
     path "sex_discordant.txt",      emit: discordant_samples
     path "sex_check_summary.txt",   emit: summary
     path "sex_check.sexcheck",      emit: sexcheck
+    path "*.png",                   optional: true, emit: plots
 
     script:
     def prefix = "${meta.id}"

@@ -34,6 +34,7 @@ nextflow.enable.dsl = 2
 
 include { CHECK_VERSIONS          } from '../modules/check_versions'
 include { INPUT_CHECK             } from './modules/input_check'
+include { IMPUTATION_FILTER       } from './modules/imputation_filter'
 include { DUPLICATE_VARIANT_CHECK } from './modules/duplicate_variant_check'
 include { SAMPLE_CALLRATE         } from './modules/sample_callrate'
 include { VARIANT_CALLRATE        } from './modules/variant_callrate'
@@ -100,6 +101,8 @@ workflow {
     Output dir        : ${params.outdir}
     Phenotype file    : ${params.pheno ?: 'not provided'}
     Reference panel   : ${params.reference_panel ?: 'not provided'}
+    HapMap info       : ${params.hapmap_info ?: 'not provided'}
+    LD regions file   : ${params.ld_regions ?: 'not provided'}
     Chromosomes       : ${params.chroms}
     ----------------------------------------------------------------
     Phase switches
@@ -108,6 +111,7 @@ workflow {
       Sample QC scope     : ${scope}${scope == 'provisional' ? '  *** PROVISIONAL — not all autosomes ***' : ''}
     ----------------------------------------------------------------
     Variant-level QC modules (Phase 2)
+      Imputation filter   : ${params.run_imputation_filter}${params.run_imputation_filter ? "  (R2 >= ${params.imputation_r2}, file: ${params.info_file ?: 'none'})" : ''}
       Duplicate check     : ${params.run_duplicate_check}
       Variant missingness : ${params.run_variant_missingness}
       HWE filter          : ${params.run_hwe}
@@ -123,7 +127,9 @@ workflow {
     Thresholds
       Sample missingness  : ${params.sample_missingness}
       Variant missingness : ${params.variant_missingness}
-      HWE p-value         : ${params.hwe_p}
+      CC differential miss: ${params.cc_miss_p}
+      HWE p (autosomes)   : ${params.hwe_p}
+      HWE p (chrX)        : ${params.hwe_p_chrx}
       MAF                 : ${params.maf}
       Heterozygosity SD   : ${params.heterozygosity_sd}
       PI_HAT relatedness  : ${params.relatedness_pi_hat}
@@ -139,12 +145,17 @@ workflow {
         file("${params.bfile}.bim"),
         file("${params.bfile}.fam")
     ])
-    ch_pheno = params.pheno           ? Channel.value(file(params.pheno))    : Channel.value([])
-    ch_ref   = params.reference_panel ? Channel.value(params.reference_panel) : Channel.value([])
+    ch_pheno       = params.pheno           ? Channel.value(file(params.pheno))           : Channel.value([])
+    ch_ref         = params.reference_panel ? Channel.value(params.reference_panel)        : Channel.value([])
+    ch_ld_regions  = params.ld_regions      ? Channel.value(file(params.ld_regions))       : Channel.value([])
+    ch_hapmap_info = params.hapmap_info     ? Channel.value(file(params.hapmap_info))      : Channel.value([])
+    ch_info_file   = params.info_file       ? Channel.value(file(params.info_file))        : Channel.value([])
 
     ch_variant_exclusions = Channel.empty()
     ch_sample_exclusions  = Channel.empty()
     ch_qc_summaries       = Channel.empty()
+    ch_qc_plots           = Channel.empty()
+    ch_qc_data            = Channel.empty()
 
     // ════════════════════════════════════════════════════════════════════════
     //  PHASE 1 — Input validation
@@ -161,11 +172,23 @@ workflow {
     //  and MERGE_CHROMOSOMES are provided for large multi-chip cohorts that
     //  benefit from chromosome-parallel execution.
     //
-    //  Order: duplicates → callrate → HWE → MAF
+    //  Order: imputation filter → duplicates → callrate → HWE → MAF
+    //  Imputation filter runs first to remove poorly imputed variants before
+    //  any other QC metrics are computed. Disabled by default.
     //  HWE is placed before MAF so rare-variant HWE inflation doesn't bias
     //  the MAF cutoff; both run on the callrate-cleaned dataset.
     // ════════════════════════════════════════════════════════════════════════
     if (params.run_variant_qc) {
+
+        if (params.run_imputation_filter) {
+            IMPUTATION_FILTER(ch_working, ch_info_file)
+            ch_working            = IMPUTATION_FILTER.out.plink
+            ch_variant_exclusions = ch_variant_exclusions.mix(IMPUTATION_FILTER.out.removed_variants)
+            ch_qc_summaries       = ch_qc_summaries.mix(IMPUTATION_FILTER.out.summary)
+            ch_qc_plots           = ch_qc_plots.mix(IMPUTATION_FILTER.out.plots)
+        } else {
+            log.info "Imputation filter disabled (run_imputation_filter = false)"
+        }
 
         if (params.run_duplicate_check) {
             DUPLICATE_VARIANT_CHECK(ch_working)
@@ -181,6 +204,8 @@ workflow {
             ch_working            = VARIANT_CALLRATE.out.plink
             ch_variant_exclusions = ch_variant_exclusions.mix(VARIANT_CALLRATE.out.removed_variants)
             ch_qc_summaries       = ch_qc_summaries.mix(VARIANT_CALLRATE.out.summary)
+            ch_qc_summaries       = ch_qc_summaries.mix(VARIANT_CALLRATE.out.cc_miss_summary)
+            ch_qc_plots           = ch_qc_plots.mix(VARIANT_CALLRATE.out.plots)
         } else {
             log.warn "SKIPPING: Variant missingness (run_variant_missingness = false)"
         }
@@ -190,6 +215,7 @@ workflow {
             ch_working            = HWE_FILTER.out.plink
             ch_variant_exclusions = ch_variant_exclusions.mix(HWE_FILTER.out.removed_variants)
             ch_qc_summaries       = ch_qc_summaries.mix(HWE_FILTER.out.summary)
+            ch_qc_plots           = ch_qc_plots.mix(HWE_FILTER.out.plots)
         } else {
             log.warn "SKIPPING: HWE filter (run_hwe = false)"
         }
@@ -199,6 +225,7 @@ workflow {
             ch_working            = MAF_FILTER.out.plink
             ch_variant_exclusions = ch_variant_exclusions.mix(MAF_FILTER.out.removed_variants)
             ch_qc_summaries       = ch_qc_summaries.mix(MAF_FILTER.out.summary)
+            ch_qc_plots           = ch_qc_plots.mix(MAF_FILTER.out.plots)
         } else {
             log.warn "SKIPPING: MAF filter (run_maf_filter = false)"
         }
@@ -243,6 +270,8 @@ workflow {
             ch_working           = SAMPLE_CALLRATE.out.plink
             ch_sample_exclusions = ch_sample_exclusions.mix(SAMPLE_CALLRATE.out.removed_samples)
             ch_qc_summaries      = ch_qc_summaries.mix(SAMPLE_CALLRATE.out.summary)
+            ch_qc_data           = ch_qc_data.mix(SAMPLE_CALLRATE.out.imiss)
+            ch_qc_data           = ch_qc_data.mix(SAMPLE_CALLRATE.out.removed_samples)
         } else {
             log.warn "SKIPPING: Sample missingness (run_sample_missingness = false)"
         }
@@ -251,6 +280,9 @@ workflow {
             SEX_CHECK(ch_working, ch_pheno)
             ch_sample_exclusions = ch_sample_exclusions.mix(SEX_CHECK.out.discordant_samples)
             ch_qc_summaries      = ch_qc_summaries.mix(SEX_CHECK.out.summary)
+            ch_qc_plots          = ch_qc_plots.mix(SEX_CHECK.out.plots)
+            ch_qc_data           = ch_qc_data.mix(SEX_CHECK.out.sexcheck)
+            ch_qc_data           = ch_qc_data.mix(SEX_CHECK.out.discordant_samples)
         } else {
             log.warn "SKIPPING: Sex check (run_sex_check = false)"
         }
@@ -259,22 +291,29 @@ workflow {
             HETEROZYGOSITY(ch_working)
             ch_sample_exclusions = ch_sample_exclusions.mix(HETEROZYGOSITY.out.outlier_samples)
             ch_qc_summaries      = ch_qc_summaries.mix(HETEROZYGOSITY.out.summary)
+            ch_qc_plots          = ch_qc_plots.mix(HETEROZYGOSITY.out.plots)
+            ch_qc_data           = ch_qc_data.mix(HETEROZYGOSITY.out.het)
+            ch_qc_data           = ch_qc_data.mix(HETEROZYGOSITY.out.outlier_samples)
         } else {
             log.warn "SKIPPING: Heterozygosity (run_heterozygosity = false)"
         }
 
         if (params.run_relatedness) {
-            RELATEDNESS(ch_working)
+            RELATEDNESS(ch_working, ch_ld_regions)
             ch_sample_exclusions = ch_sample_exclusions.mix(RELATEDNESS.out.related_samples)
             ch_qc_summaries      = ch_qc_summaries.mix(RELATEDNESS.out.summary)
+            ch_qc_plots          = ch_qc_plots.mix(RELATEDNESS.out.plots)
+            ch_qc_data           = ch_qc_data.mix(RELATEDNESS.out.related_samples)
         } else {
             log.warn "SKIPPING: Relatedness (run_relatedness = false)"
         }
 
         if (params.run_ancestry_pca) {
-            ANCESTRY_PCA(ch_working, ch_ref)
+            ANCESTRY_PCA(ch_working, ch_ref, ch_ld_regions, ch_hapmap_info)
             ch_sample_exclusions = ch_sample_exclusions.mix(ANCESTRY_PCA.out.outlier_samples)
             ch_qc_summaries      = ch_qc_summaries.mix(ANCESTRY_PCA.out.summary)
+            ch_qc_plots          = ch_qc_plots.mix(ANCESTRY_PCA.out.plots)
+            ch_qc_data           = ch_qc_data.mix(ANCESTRY_PCA.out.outlier_samples)
         } else {
             log.warn "SKIPPING: Ancestry PCA (run_ancestry_pca = false)"
         }
@@ -311,6 +350,8 @@ workflow {
             ch_qc_summaries.collect(),
             ch_all_excluded_samples,
             ch_all_excluded_variants,
+            ch_qc_plots.collect().ifEmpty([]),
+            ch_qc_data.collect().ifEmpty([]),
             Channel.value(scope)
         )
     }

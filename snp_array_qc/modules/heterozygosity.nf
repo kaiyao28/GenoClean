@@ -45,6 +45,7 @@ process HETEROZYGOSITY {
     path "heterozygosity_outliers.txt",  emit: outlier_samples
     path "heterozygosity_summary.txt",   emit: summary
     path "heterozygosity.het",           emit: het
+    path "*.png",                        optional: true, emit: plots
 
     script:
     def prefix = "${meta.id}"
@@ -116,24 +117,65 @@ print(f"Heterozygosity: {len(outliers)} outliers flagged "
       f"cutoffs=[{lo:.4f}, {hi:.4f}])")
 PYEOF
 
-    # ── Optional R plot ───────────────────────────────────────────────────────
+    # ── Heterozygosity distribution plot ─────────────────────────────────────
     if command -v Rscript &>/dev/null; then
         Rscript - << 'RSCRIPT'
 library(ggplot2)
 df <- read.table("heterozygosity.het", header=TRUE)
-df\$het_rate <- (df\$N.NM. - df\$O.HOM.) / df\$N.NM.
-mean_het <- mean(df\$het_rate, na.rm=TRUE)
-sd_het   <- sd(df\$het_rate, na.rm=TRUE)
+df$het_rate <- (df$N.NM. - df$O.HOM.) / df$N.NM.
+mean_het <- mean(df$het_rate, na.rm=TRUE)
+sd_het   <- sd(df$het_rate, na.rm=TRUE)
 lo <- mean_het - ${params.heterozygosity_sd} * sd_het
 hi <- mean_het + ${params.heterozygosity_sd} * sd_het
 p <- ggplot(df, aes(x=het_rate)) +
     geom_histogram(bins=80, fill="steelblue", alpha=0.8) +
     geom_vline(xintercept=c(lo, hi), linetype="dashed", colour="red") +
     geom_vline(xintercept=mean_het, linetype="solid", colour="darkblue") +
-    labs(title=paste0("Heterozygosity (±${params.heterozygosity_sd} SD cutoffs shown)"),
+    labs(title=paste0("Heterozygosity rate (±${params.heterozygosity_sd} SD cutoffs)"),
+         subtitle="Red dashed: outlier cutoffs; blue solid: mean",
          x="Observed heterozygosity rate", y="Count") +
     theme_classic()
 ggsave("heterozygosity_plot.png", p, width=8, height=5)
+RSCRIPT
+    fi
+
+    # ── Combined missingness vs heterozygosity scatter (Anderson et al. 2010) ─
+    # Re-compute per-sample missingness on the current dataset so both axes
+    # cover the same set of samples
+    plink \\
+        --bfile ${bed.baseName} \\
+        --missing \\
+        --out miss_for_plot \\
+        --allow-no-sex
+
+    if command -v Rscript &>/dev/null && [ -f miss_for_plot.imiss ]; then
+        Rscript - << 'RSCRIPT'
+library(ggplot2)
+het   <- read.table("heterozygosity.het", header=TRUE)
+imiss <- read.table("miss_for_plot.imiss", header=TRUE)
+het$het_rate   <- (het$N.NM. - het$O.HOM.) / het$N.NM.
+imiss$logF_MISS <- log10(pmax(imiss$F_MISS, 1e-5))
+merged <- merge(het[, c("FID","IID","het_rate")],
+                imiss[, c("FID","IID","logF_MISS")],
+                by=c("FID","IID"))
+mean_het <- mean(merged$het_rate)
+sd_het   <- sd(merged$het_rate)
+lo <- mean_het - ${params.heterozygosity_sd} * sd_het
+hi <- mean_het + ${params.heterozygosity_sd} * sd_het
+p <- ggplot(merged, aes(x=logF_MISS, y=het_rate)) +
+    geom_point(alpha=0.4, size=0.8, colour="steelblue") +
+    geom_hline(yintercept=c(lo, hi), linetype="dashed", colour="red") +
+    geom_vline(xintercept=log10(${params.sample_missingness}), linetype="dashed", colour="darkred") +
+    scale_x_continuous(
+        breaks=c(-4, -3, -2, -1, 0),
+        labels=c("0.0001", "0.001", "0.01", "0.1", "1")
+    ) +
+    labs(title="Sample missingness vs heterozygosity rate",
+         subtitle="Red dashed: het ±${params.heterozygosity_sd} SD; dark-red dashed: missingness threshold",
+         x="Proportion of missing genotypes (log10 scale)",
+         y="Heterozygosity rate") +
+    theme_classic()
+ggsave("miss_het_scatter.png", p, width=8, height=6)
 RSCRIPT
     fi
     """

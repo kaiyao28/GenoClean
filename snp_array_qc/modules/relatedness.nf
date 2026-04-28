@@ -46,19 +46,25 @@ process RELATEDNESS {
 
     input:
     tuple val(meta), path(bed), path(bim), path(fam)
+    path ld_regions   // optional: high-LD region file in PLINK range format
 
     output:
-    path "relatedness_remove.txt", emit: related_samples
+    path "relatedness_remove.txt",  emit: related_samples
     path "relatedness_summary.txt", emit: summary
     path "relatedness.genome",      emit: genome
+    path "*.png",                   optional: true, emit: plots
 
     script:
-    def prefix = "${meta.id}"
+    def prefix   = "${meta.id}"
+    def ld_flag  = ld_regions instanceof List ? "" : "--exclude range ${ld_regions}"
     """
     # ── LD pruning: IBD estimation is more accurate on independent SNPs ────────
+    # High-LD regions (MHC, chr8/17 inversions) inflate IBD estimates and are
+    # excluded when params.ld_regions is provided
     plink \\
         --bfile ${bed.baseName} \\
         --maf 0.05 \\
+        ${ld_flag} \\
         --indep-pairwise ${params.ld_window} ${params.ld_step} ${params.ld_r2} \\
         --out prune_rel \\
         --allow-no-sex
